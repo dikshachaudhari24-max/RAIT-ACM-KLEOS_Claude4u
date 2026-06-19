@@ -262,3 +262,150 @@ def _to_float(val) -> float | None:
         return float(cleaned) if cleaned else None
     except (ValueError, TypeError):
         return None
+
+
+# ──────────────── Enhanced endpoints: search, summary, export ────────────────
+
+from fastapi.responses import Response  # noqa: E402
+
+
+def _get_filtered_invoices(user_id: str, status: str = None, search: str = None,
+                           date_from: str = None, date_to: str = None,
+                           page: int = 1, per_page: int = 20) -> tuple[list, int]:
+    from app.db.supabase import get_admin_client as _admin
+    client = _admin()
+    q = client.table("invoices").select("*", count="exact").eq("user_id", user_id)
+    if status:
+        q = q.eq("status", status)
+    if search:
+        q = q.or_(f"supplier_name.ilike.%{search}%,invoice_number.ilike.%{search}%")
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
+    offset = (page - 1) * per_page
+    result = q.order("created_at", desc=True).range(offset, offset + per_page - 1).execute()
+    return result.data or [], result.count or 0
+
+
+def _get_all_invoices(user_id: str, status: str = None, search: str = None,
+                      date_from: str = None, date_to: str = None) -> list:
+    from app.db.supabase import get_admin_client as _admin
+    client = _admin()
+    q = client.table("invoices").select("*").eq("user_id", user_id)
+    if status:
+        q = q.eq("status", status)
+    if search:
+        q = q.or_(f"supplier_name.ilike.%{search}%,invoice_number.ilike.%{search}%")
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
+    result = q.order("created_at", desc=True).execute()
+    return result.data or []
+
+
+@router.get("/search")
+async def search_invoices(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    status: str = Query(None),
+    search: str = Query(None),
+    date_from: str = Query(None),
+    date_to: str = Query(None),
+    user=Depends(verify_jwt),
+):
+    invoices, total = _get_filtered_invoices(
+        user["uid"], status=status, search=search,
+        date_from=date_from, date_to=date_to,
+        page=page, per_page=per_page,
+    )
+    total_pages = (total + per_page - 1) // per_page if total else 0
+    items = []
+    for inv in invoices:
+        items.append({
+            "id": inv["id"],
+            "supplier_name": inv.get("supplier_name") or "",
+            "supplier_gstin": inv.get("supplier_gstin") or "",
+            "invoice_number": inv.get("invoice_number") or "",
+            "date": str(inv.get("date") or ""),
+            "total_amount": float(inv.get("total_amount") or 0),
+            "gst_amount": float(inv.get("gst_amount") or 0),
+            "status": inv.get("status") or "pending",
+            "filing_period": inv.get("filing_period") or "",
+            "upload_source": inv.get("upload_source") or "app",
+            "is_duplicate": inv.get("is_duplicate", False),
+            "created_at": str(inv.get("created_at") or ""),
+        })
+    return {
+        "invoices": items,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+    }
+
+
+@router.get("/summary")
+async def invoice_summary(user=Depends(verify_jwt)):
+    all_inv = _get_all_invoices(user["uid"])
+    total_amount = sum(float(i.get("total_amount") or 0) for i in all_inv)
+    total_itc = sum(
+        float(i.get("gst_amount") or 0)
+        for i in all_inv
+        if len(str(i.get("supplier_gstin") or "")) == 15
+    )
+    needs_review = sum(
+        1 for i in all_inv
+        if i.get("status") in ("error_gstin", "error_hsn", "anomalous", "ocr_error")
+    )
+    return {
+        "total_invoices": len(all_inv),
+        "total_amount": round(total_amount, 2),
+        "total_itc": round(total_itc, 2),
+        "needs_review": needs_review,
+    }
+
+
+@router.get("/export/excel")
+async def export_excel(
+    status: str = Query(None),
+    search: str = Query(None),
+    date_from: str = Query(None),
+    date_to: str = Query(None),
+    user=Depends(verify_jwt),
+):
+    from app.services.export_service import generate_excel
+    from app.db.queries import get_user_by_phone
+
+    invoices = _get_all_invoices(user["uid"], status=status, search=search,
+                                 date_from=date_from, date_to=date_to)
+    user_info = {"name": user.get("email", ""), "phone": ""}
+    today = __import__("datetime").date.today().isoformat()
+    excel_bytes = generate_excel(invoices, user_info, date_from, date_to)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="Hisably_{today}.xlsx"'},
+    )
+
+
+@router.get("/export/pdf")
+async def export_pdf(
+    status: str = Query(None),
+    search: str = Query(None),
+    date_from: str = Query(None),
+    date_to: str = Query(None),
+    user=Depends(verify_jwt),
+):
+    from app.services.export_service import generate_pdf
+
+    invoices = _get_all_invoices(user["uid"], status=status, search=search,
+                                 date_from=date_from, date_to=date_to)
+    user_info = {"name": user.get("email", ""), "phone": ""}
+    today = __import__("datetime").date.today().isoformat()
+    pdf_bytes = generate_pdf(invoices, user_info, date_from, date_to)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Hisably_{today}.pdf"'},
+    )
