@@ -1,0 +1,49 @@
+code,description,gst_rate,category
+1507,Soyabean Oil and its Fractions,5,Edible Oils
+1508,Groundnut Oil and its Fractions,5,Edible Oils
+1509,Olive Oil and its Fractions,5,Edible Oils
+1510,Other Oils from Olives,5,Edible Oils
+1511,Palm Oil and its Fractions,5,Edible Oils
+1512,Sunflower Seed or Safflower Oil,5,Edible Oils
+1513,Coconut or Palm Kernel Oil,5,Edible Oils
+1514,Rapeseed or Mustard Oil,5,Edible Oils
+1515,Other Fixed Vegetable Fats and Oils,5,Edible Oils
+1516,Animal or Vegetable Fats Hydrogenated,5,Edible Oils
+2106,Food Preparations Not Elsewhere Specified,18,Packaged Food
+2101,Extracts Essences of Coffee Tea,18,Packaged Food
+2103,Sauces Mixed Condiments Mustard,18,Packaged Food
+2104,Soups Broths Preparations Thereof,18,Packaged Food
+2105,Ice Cream and Other Edible Ice,18,Packaged Food
+3401,Soap Organic Surface Active Products,18,Soaps
+3402,Organic Surface Active Agents,18,Soaps
+3403,Lubricating Preparations,18,Soaps
+3404,Artificial Waxes Prepared Waxes,18,Soaps
+3405,Polishes Creams for Footwear Furniture,18,Soaps
+5208,Woven Fabrics of Cotton 85% or More,5,Textiles
+5209,Woven Fabrics of Cotton 85% Over 200g,5,Textiles
+5210,Woven Fabrics of Cotton Under 85%,5,Textiles
+5211,Woven Fabrics of Cotton Under 85% Over 200g,5,Textiles
+5212,Other Woven Fabrics of Cotton,5,Textiles
+5407,Woven Fabrics of Synthetic Filament Yarn,5,Textiles
+5408,Woven Fabrics of Artificial Filament Yarn,5,Textiles
+5512,Woven Fabrics of Synthetic Staple Fibres,5,Textiles
+5513,Woven Fabrics of Synthetic Staple Under 85%,5,Textiles
+5514,Woven Fabrics of Synthetic Twill,5,Textiles
+4820,Registers Account Books Notebooks,18,Stationery
+4817,Envelopes Letter Cards Plain Postcards,18,Stationery
+4816,Carbon Paper Self Copy Paper,18,Stationery
+4818,Toilet Paper Handkerchiefs Towels,18,Stationery
+4819,Cartons Boxes Cases Bags of Paper,18,Stationery
+4821,Paper or Paperboard Labels,18,Stationery
+4822,Bobbins Spools Cops of Paper Pulp,18,Stationery
+4823,Other Paper Paperboard Cellulose Wadding,18,Stationery
+8517,Telephone Sets Including Smartphones,18,Mobile Phones
+8518,Microphones Loudspeakers Headphones,18,Mobile Phones
+8519,Sound Recording or Reproducing Apparatus,18,Mobile Phones
+8521,Video Recording or Reproducing Apparatus,18,Mobile Phones
+8523,Discs Tapes Solid State Storage Devices,18,Mobile Phones
+8471,Automatic Data Processing Machines,18,Mobile Phones
+8473,Parts of Data Processing Machines,18,Mobile Phones
+8504,Electrical Transformers Static Converters,18,Mobile Phones
+9405,Lamps and Lighting Fittings,18,Mobile Phones
+8544,Insulated Wire Cable Electric Conductors,18,Mobile Phones
