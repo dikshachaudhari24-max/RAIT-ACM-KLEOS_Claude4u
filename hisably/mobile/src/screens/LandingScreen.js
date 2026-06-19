@@ -7,16 +7,20 @@ import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
 
 export const LandingScreen = ({ navigation }) => {
-  const { loginDemo } = useAuthStore();
+  const { loginDemo, setOnboarded } = useAuthStore();
   const insets = useSafeAreaInsets();
   const t = useT();
 
+  const handleGetStarted = async () => {
+    await setOnboarded();
+    navigation.navigate('Login');
+  };
+
   return (
     <View style={styles.root}>
-      {/* Dark green hero — seamless surface, white-outline robot, no inner box */}
       <View style={[styles.hero, { paddingTop: insets.top + 20 }]}>
         <View style={styles.illoWrap}>
-          <RobotIllustration size={260} />
+          <RobotIllustration size={220} />
         </View>
         <View style={styles.dots}>
           <View style={[styles.dot, styles.dotActive]} />
@@ -24,7 +28,6 @@ export const LandingScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Cream content area */}
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
         <Text style={[typography.heroTitle, styles.title]}>{t('landing.heroTitle')}</Text>
         <Text style={[typography.bodyMd, styles.subtitle]}>{t('landing.heroSubtitle')}</Text>
@@ -33,11 +36,11 @@ export const LandingScreen = ({ navigation }) => {
           <LanguageChips />
         </View>
 
-        <PrimaryButton title={t('common.getStarted')} onPress={() => navigation.navigate('Login')} />
+        <PrimaryButton title={t('common.getStarted')} onPress={handleGetStarted} />
 
         <Text style={styles.signInRow}>
           <Text style={[typography.labelBold, { color: colors.textPrimary }]}>{t('landing.haveAccount')} </Text>
-          <Text style={[typography.labelBold, styles.signIn]} onPress={() => navigation.navigate('Login')}>
+          <Text style={[typography.labelBold, styles.signIn]} onPress={handleGetStarted}>
             {t('landing.signIn')}
           </Text>
         </Text>
@@ -53,20 +56,28 @@ export const LandingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.primary },
   hero: {
-    height: '50%',
+    flex: 0,
+    maxHeight: '45%',
     paddingHorizontal: spacing.screenH,
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomLeftRadius: radius.sheet,
-    borderBottomRightRadius: radius.sheet,
+    overflow: 'hidden',
+    paddingBottom: 12,
   },
-  illoWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  illoWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxHeight: 220,
+  },
   dots: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)', marginHorizontal: 4 },
   dotActive: { width: 22, backgroundColor: '#fff' },
   sheet: {
     flex: 1,
     backgroundColor: colors.bg,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     paddingHorizontal: spacing.screenH,
     paddingTop: 28,
   },

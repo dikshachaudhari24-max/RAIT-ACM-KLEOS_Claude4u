@@ -55,15 +55,15 @@ const MainStack = () => (
   </RootStack.Navigator>
 );
 
-const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+const AuthStack = ({ onboarded }) => (
+  <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={onboarded ? 'Login' : 'Landing'}>
     <Stack.Screen name="Landing" component={LandingScreen} />
     <Stack.Screen name="Login" component={LoginScreen} />
   </Stack.Navigator>
 );
 
 export const AppNavigator = () => {
-  const { user, loading, initialize } = useAuthStore();
+  const { user, loading, initialize, onboarded } = useAuthStore();
   const loadLang = useLangStore((s) => s.loadLang);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      {user ? <MainStack /> : <AuthStack />}
+      {user ? <MainStack /> : <AuthStack onboarded={onboarded} />}
     </NavigationContainer>
   );
 };
