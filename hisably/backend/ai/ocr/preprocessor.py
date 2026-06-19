@@ -3,7 +3,6 @@
 import tempfile
 
 import cv2
-import fitz
 import numpy as np
 
 
@@ -15,12 +14,13 @@ def preprocess_image(image_path: str) -> str:
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    denoised = cv2.fastNlMeansDenoising(gray, h=10)
+
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    gray = clahe.apply(gray)
+    enhanced = clahe.apply(denoised)
 
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-
-    sharpened = cv2.addWeighted(gray, 1.5, blurred, -0.5, 0)
+    blurred = cv2.GaussianBlur(enhanced, (3, 3), 0)
+    sharpened = cv2.addWeighted(enhanced, 1.5, blurred, -0.5, 0)
 
     _, thresh = cv2.threshold(sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     coords = np.column_stack(np.where(thresh > 0))
@@ -44,6 +44,8 @@ def preprocess_image(image_path: str) -> str:
 
 def is_digital_pdf(file_path: str) -> bool:
     """Check whether a PDF contains extractable text or is a scanned image."""
+    import fitz
+
     doc = fitz.open(file_path)
     if len(doc) == 0:
         doc.close()
