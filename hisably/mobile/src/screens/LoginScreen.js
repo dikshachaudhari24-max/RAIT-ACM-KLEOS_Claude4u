@@ -67,7 +67,7 @@ export const LoginScreen = () => {
     if (otp.length !== OTP_LENGTH) return Alert.alert('', t('login.invalidOtp'));
     setLoading(true);
     try {
-      await verifyOtp(phone, otp);
+      await verifyOtp(phone, otp, name);
     } catch (e) {
       Alert.alert(t('common.error'), e.message);
     }

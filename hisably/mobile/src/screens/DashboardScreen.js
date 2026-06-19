@@ -19,7 +19,8 @@ export const DashboardScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const t = useT();
 
-  const firstName = (user?.name || user?.email?.split('@')[0] || 'there');
+  const firstName = user?.name ? user.name.split(' ')[0] : (user?.email?.split('@')[0] || 'there');
+  const initials = user?.initials || (firstName[0] || 'U').toUpperCase();
 
   useEffect(() => { loadData(); }, []);
 
@@ -59,7 +60,7 @@ export const DashboardScreen = ({ navigation }) => {
       title="Dashboard"
       heroHeight={236}
       leftIcon="notifications-outline"
-      avatar={(firstName[0] || 'U').toUpperCase() + (firstName[1] || '').toUpperCase()}
+      avatar={initials}
       onAvatarPress={() => navigation.navigate('Profile')}
       heroExtra={heroExtra}
     >

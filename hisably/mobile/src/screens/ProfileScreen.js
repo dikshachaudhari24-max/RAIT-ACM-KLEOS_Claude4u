@@ -20,8 +20,9 @@ export const ProfileScreen = ({ navigation }) => {
   const t = useT();
   const [stats, setStats] = useState({ invoices: 0, itc: 0, tasks: 0 });
 
-  const name = user?.name || 'Rajesh Kumar';
-  const phone = user?.phone || '+91 98765 43210';
+  const name = user?.name || 'User';
+  const phone = user?.phone || '';
+  const initials = user?.initials || (name[0] || 'U').toUpperCase();
 
   useEffect(() => {
     (async () => {
