@@ -126,8 +126,25 @@ export const InvoiceUploadScreen = ({ navigation }) => {
               </View>
             );
           })}
+          <TouchableOpacity
+            style={{ alignItems: 'center', marginTop: 12 }}
+            onPress={() => navigation.navigate('InvoiceList')}
+          >
+            <Text style={[typography.labelBold, { color: colors.primary, fontSize: 15 }]}>
+              View All Invoices →
+            </Text>
+          </TouchableOpacity>
         </>
       )}
+
+      <TouchableOpacity
+        style={{ alignItems: 'center', marginTop: recent.length > 0 ? 8 : 20, marginBottom: 12 }}
+        onPress={() => navigation.navigate('InvoiceList')}
+      >
+        <Text style={[typography.labelBold, { color: colors.primary, fontSize: 15 }]}>
+          {recent.length === 0 ? '📋 View All Invoices & Export' : ''}
+        </Text>
+      </TouchableOpacity>
 
       <Modal visible={processing} transparent animationType="fade">
         <View style={styles.modalOverlay}>
