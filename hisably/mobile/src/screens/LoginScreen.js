@@ -52,8 +52,8 @@ export const LoginScreen = () => {
     setLoading(true);
     try {
       const res = await sendOtp(phone);
-      if (res?.message?.startsWith('Dev OTP:')) {
-        Alert.alert('OTP Sent', res.message);
+      if (res?.dev_otp) {
+        Alert.alert('OTP (Dev Mode)', `WhatsApp delivery unavailable.\n\nYour OTP is: ${res.dev_otp}`);
       }
       setStep('otp');
       setTimeout(() => otpRef.current?.focus(), 150);

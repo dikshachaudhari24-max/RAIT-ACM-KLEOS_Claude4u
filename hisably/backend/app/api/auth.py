@@ -52,7 +52,17 @@ async def send_otp(req: SendOtpRequest):
     message = f"🔐 Aapka Hisably OTP: *{otp}*\n\nYeh 5 minute mein expire ho jayega.\nKisi ke saath share na karein."
     sent = _send_whatsapp(phone, message)
 
+    is_dev = settings.APP_ENV == "development"
+
     if not sent:
+        if is_dev:
+            # In dev mode, WhatsApp delivery may fail (e.g. number not joined to
+            # the Twilio sandbox). Return the OTP directly so testing can proceed.
+            return {
+                "message": f"WhatsApp delivery unavailable. Dev OTP: {otp}",
+                "phone": phone,
+                "dev_otp": otp,
+            }
         raise HTTPException(status_code=500, detail="OTP send failed. Check your WhatsApp number.")
 
     return {"message": "OTP sent to WhatsApp", "phone": phone}
