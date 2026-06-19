@@ -13,7 +13,7 @@ pinecone-client
 openai
 groq
 google-cloud-vision
-opencv-python
+opencv-python-headless
 reportlab
 pymupdf
 gtts
@@ -25,4 +25,5 @@ Pillow
 httpx
 pytesseract
 pdfplumber
-pyjwt
+pdf2image
+PyJWT
