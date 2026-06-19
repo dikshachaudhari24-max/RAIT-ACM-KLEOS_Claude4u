@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    VISION_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    VISION_CONFIDENCE_THRESHOLD: float = 0.7
+    OCR_MIN_TEXT_LENGTH: int = 20
     APP_ENV: str = "development"
 
     @model_validator(mode="after")
