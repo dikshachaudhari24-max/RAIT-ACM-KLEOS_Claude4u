@@ -94,6 +94,12 @@ export const api = {
     }),
   chatQuery: (query) =>
     request('/chatbot/query', { method: 'POST', body: JSON.stringify({ query }) }),
+
+  voiceQuery: async (audioUri) => {
+    const form = new FormData();
+    form.append('file', { uri: audioUri, name: 'voice.m4a', type: 'audio/m4a' });
+    return request('/chatbot/voice', { method: 'POST', body: form });
+  },
   getAnalytics: (month) => request(`/analytics/monthly${month ? `?month=${month}` : ''}`),
   getInvoiceDetail: (invoiceId) => request(`/invoice/detail?invoice_id=${invoiceId}`),
   health: () => request('/health'),
