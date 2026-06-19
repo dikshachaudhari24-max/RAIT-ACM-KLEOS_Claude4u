@@ -3,6 +3,7 @@ export { LoginScreen } from './LoginScreen';
 export { DashboardScreen } from './DashboardScreen';
 export { InvoiceUploadScreen } from './InvoiceUploadScreen';
 export { InvoiceDetailScreen } from './InvoiceDetailScreen';
+export { InvoiceListScreen } from './InvoiceListScreen';
 export { GSTR2BScreen } from './GSTR2BScreen';
 export { ITCDashboardScreen } from './ITCDashboardScreen';
 export { TasksScreen } from './TasksScreen';
