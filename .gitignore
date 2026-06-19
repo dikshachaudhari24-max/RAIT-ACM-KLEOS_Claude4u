@@ -1,3 +1,4 @@
+twilio_temp/
 __pycache__/
 *.pyc
 .env
