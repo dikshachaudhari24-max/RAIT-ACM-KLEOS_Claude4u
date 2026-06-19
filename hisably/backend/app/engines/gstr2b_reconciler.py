@@ -54,27 +54,25 @@ def reconcile(
             })
             continue
 
-        if inv_taxable > 0:
-            pct_diff = abs(inv_taxable - rec_itc) / inv_taxable * 100
+        # GSTR-2B reports ITC (the GST amount), so compare it against the
+        # invoice's GST amount — not the taxable value (different magnitudes).
+        inv_itc = float(inv_gst) if inv_gst is not None else inv_taxable * 0.18
+        if inv_itc > 0:
+            pct_diff = abs(inv_itc - rec_itc) / inv_itc * 100
         else:
             pct_diff = 0.0 if rec_itc == 0 else 100.0
 
         if pct_diff > amount_tolerance_percent:
-            amount_diff = abs(inv_taxable - rec_itc)
-            if inv_gst is not None:
-                gst_diff = abs(float(inv_gst) - rec_itc)
-                itc_at_risk = gst_diff
-            else:
-                itc_at_risk = amount_diff * 0.18
+            itc_at_risk = abs(inv_itc - rec_itc)
             mismatches.append({
                 "invoice_id": inv.get("id"),
                 "invoice_number": inv.get("invoice_number"),
                 "supplier_name": inv.get("supplier_name"),
                 "supplier_gstin": inv.get("supplier_gstin"),
                 "mismatch_type": "amount_mismatch",
-                "invoice_amount": inv_taxable,
+                "invoice_amount": inv_itc,
                 "gstr2b_amount": rec_itc,
-                "amount_difference": round(amount_diff, 2),
+                "amount_difference": round(abs(inv_itc - rec_itc), 2),
                 "itc_at_risk": round(itc_at_risk, 2),
                 "resolved": False,
             })
