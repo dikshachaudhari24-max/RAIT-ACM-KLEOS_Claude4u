@@ -1,3 +1,20 @@
+import os
+import sys
+
+# On Windows the default `pip install twilio` can fail to fully extract because
+# of the OS path-length limit, leaving a broken install. A complete copy lives
+# in `twilio_temp/` at the project root; put it first on the import path so
+# `from twilio.rest import Client` resolves to the working copy.
+_here = os.path.dirname(os.path.abspath(__file__))
+for _candidate in (
+    os.path.join(_here, "..", "..", "..", "twilio_temp"),  # repo root / twilio_temp
+    os.path.join(_here, "..", "..", "twilio_temp"),         # hisably / twilio_temp
+):
+    _candidate = os.path.abspath(_candidate)
+    if os.path.isdir(os.path.join(_candidate, "twilio")) and _candidate not in sys.path:
+        sys.path.insert(0, _candidate)
+        break
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
