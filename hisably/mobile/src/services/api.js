@@ -103,4 +103,16 @@ export const api = {
   getAnalytics: (month) => request(`/analytics/monthly${month ? `?month=${month}` : ''}`),
   getInvoiceDetail: (invoiceId) => request(`/invoice/detail?invoice_id=${invoiceId}`),
   health: () => request('/health'),
+
+  searchInvoices: (params = {}) => {
+    const qs = Object.entries(params).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    return request(`/invoice/search${qs ? `?${qs}` : ''}`);
+  },
+  getInvoiceSummary: () => request('/invoice/summary'),
+  getExportUrl: (format, params = {}) => {
+    const qs = Object.entries(params).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    return `${API_BASE}/invoice/export/${format}${qs ? `?${qs}` : ''}`;
+  },
 };
+
+export { API_BASE };
