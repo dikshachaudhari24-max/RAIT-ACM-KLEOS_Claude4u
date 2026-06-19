@@ -1,5 +1,6 @@
 """Groq LLM client for invoice extraction and multilingual explanations."""
 
+import base64
 import json
 
 from groq import Groq
@@ -9,6 +10,7 @@ from ai.prompts.extraction_prompt import EXTRACTION_PROMPT
 from ai.prompts.hindi_explanation_prompt import HINDI_EXPLANATION_PROMPT
 from ai.prompts.supplier_recommendation_prompt import SUPPLIER_RECOMMENDATION_PROMPT
 from ai.prompts.rag_system_prompt import RAG_SYSTEM_PROMPT
+from ai.prompts.vision_extraction_prompt import VISION_EXTRACTION_PROMPT
 
 _client = None
 
@@ -50,6 +52,44 @@ def generate_invoice_extraction(raw_ocr_text: str) -> dict:
         return json.loads(cleaned)
     except (json.JSONDecodeError, IndexError):
         return {"raw_response": result, "parse_error": True}
+
+
+def generate_vision_extraction(image_path: str) -> dict:
+    """Extract structured invoice fields from an image using Groq vision model.
+
+    Sends the preprocessed image directly to a vision-capable LLM so it can
+    reason over handwritten/blurry content that defeats plain OCR.
+    """
+    with open(image_path, "rb") as f:
+        img_bytes = f.read()
+    b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+    ext = image_path.rsplit(".", 1)[-1].lower()
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "webp": "image/webp", "bmp": "image/bmp"}.get(ext, "image/png")
+
+    client = _get_client()
+    response = client.chat.completions.create(
+        model=settings.VISION_MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": VISION_EXTRACTION_PROMPT},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+                ],
+            }
+        ],
+        temperature=0.1,
+        max_tokens=2048,
+    )
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, IndexError):
+        return {"raw_response": raw, "parse_error": True}
 
 
 def generate_hindi_explanation(issue_data: dict) -> dict:
