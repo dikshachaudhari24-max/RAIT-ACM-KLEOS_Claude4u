@@ -20,7 +20,7 @@ def _get_client() -> Groq:
     return _client
 
 
-def _chat(system_prompt: str, user_message: str, model: str = "llama-3.1-8b-instant", temperature: float = 0.3) -> str:
+def _chat(system_prompt: str, user_message: str, model: str = "llama-3.3-70b-versatile", temperature: float = 0.3) -> str:
     client = _get_client()
     response = client.chat.completions.create(
         model=model,
@@ -40,7 +40,7 @@ def generate_invoice_extraction(raw_ocr_text: str) -> dict:
     result = _chat(
         system_prompt="You are an expert Indian GST invoice data extractor. Return ONLY valid JSON.",
         user_message=prompt,
-        model="llama-3.1-70b-versatile",
+        model="llama-3.3-70b-versatile",
         temperature=0.1,
     )
     try:

@@ -1,12 +1,18 @@
 """Invoice data extraction using Tesseract OCR and Groq LLM."""
 
 import os
+import sys
 
 import fitz
 import pytesseract
 from PIL import Image
 
 from ai.ocr.preprocessor import preprocess_image, is_digital_pdf
+
+if sys.platform == "win32":
+    _tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(_tesseract_path):
+        pytesseract.pytesseract.tesseract_cmd = _tesseract_path
 
 
 def _extract_text_from_pdf(file_path: str) -> str:
@@ -17,11 +23,12 @@ def _extract_text_from_pdf(file_path: str) -> str:
         doc.close()
         return text
 
+    import tempfile
     doc = fitz.open(file_path)
     full_text = []
     for page in doc:
         pix = page.get_pixmap(dpi=300)
-        img_path = f"/tmp/page_{page.number}.png"
+        img_path = os.path.join(tempfile.gettempdir(), f"page_{page.number}.png")
         pix.save(img_path)
         processed = preprocess_image(img_path)
         page_text = pytesseract.image_to_string(Image.open(processed), lang="eng+hin")

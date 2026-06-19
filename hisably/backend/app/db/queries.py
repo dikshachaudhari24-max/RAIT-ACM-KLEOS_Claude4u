@@ -8,16 +8,23 @@ from typing import Any
 from app.db.supabase import get_admin_client, get_client
 
 
+def _clean(val):
+    """Unwrap LLM confidence-wrapped values like {'value': X, 'confidence': 0.9} to plain X."""
+    if isinstance(val, dict) and "value" in val:
+        return val["value"]
+    return val
+
+
 # ──────────────────────────── Invoices ────────────────────────────
 
 def insert_invoice(user_id: str, data: dict) -> dict:
     client = get_admin_client()
     row = {
         "user_id": user_id,
-        "supplier_name": data.get("supplier_name"),
-        "supplier_gstin": data.get("supplier_gstin"),
-        "invoice_number": data.get("invoice_number"),
-        "date": data.get("date"),
+        "supplier_name": _clean(data.get("supplier_name")),
+        "supplier_gstin": _clean(data.get("supplier_gstin")),
+        "invoice_number": _clean(data.get("invoice_number")),
+        "date": _clean(data.get("date")),
         "taxable_value": data.get("taxable_value"),
         "cgst_amount": data.get("cgst_amount"),
         "sgst_amount": data.get("sgst_amount"),
@@ -25,8 +32,8 @@ def insert_invoice(user_id: str, data: dict) -> dict:
         "gst_amount": data.get("gst_amount"),
         "gst_percent": data.get("gst_percent"),
         "total_amount": data.get("total_amount"),
-        "hsn_code": data.get("hsn_code"),
-        "product_description": data.get("product_description"),
+        "hsn_code": _clean(data.get("hsn_code")),
+        "product_description": _clean(data.get("product_description")),
         "status": data.get("status", "pending"),
         "anomaly_score": data.get("anomaly_score", 0),
         "confidence_scores": data.get("confidence_scores"),

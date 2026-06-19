@@ -14,6 +14,27 @@ UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "hisably_uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+def _unwrap(val):
+    """Extract plain value from LLM response fields that may be {'value': ..., 'confidence': ...}."""
+    if isinstance(val, dict) and "value" in val:
+        return val["value"]
+    return val
+
+
+def _build_confidence_scores(extracted: dict) -> dict:
+    """Collect confidence scores from LLM response fields."""
+    scores = {}
+    for key in ("supplier_name", "supplier_gstin", "gstin", "invoice_number",
+                "date", "invoice_date", "taxable_value", "total_amount",
+                "gst_amount", "total_gst", "total_gst_amount",
+                "hsn_code", "hsn", "product_description", "description"):
+        val = extracted.get(key)
+        if isinstance(val, dict) and "confidence" in val:
+            clean_key = key.replace("invoice_", "").replace("total_gst_", "gst_").replace("total_gst", "gst_amount")
+            scores[clean_key] = val["confidence"]
+    return scores
+
+
 def _run_ocr(file_path: str, user_id: str) -> dict:
     try:
         from ai.ocr.extractor import extract
@@ -114,24 +135,33 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(verify_jwt))
             "extracted": {},
         }
 
+    hsn_raw = _unwrap(extracted.get("hsn_codes") or extracted.get("hsn_code") or extracted.get("hsn"))
+    if isinstance(hsn_raw, list):
+        hsn_raw = _unwrap(hsn_raw[0]) if hsn_raw else None
+    desc_raw = _unwrap(extracted.get("product_descriptions") or extracted.get("product_description") or extracted.get("description"))
+    if isinstance(desc_raw, list):
+        desc_raw = _unwrap(desc_raw[0]) if desc_raw else None
+
+    confidence_scores = _build_confidence_scores(extracted) or extracted.get("confidence_scores")
+
     invoice_data = {
-        "supplier_name": extracted.get("supplier_name"),
-        "supplier_gstin": extracted.get("supplier_gstin") or extracted.get("gstin"),
-        "invoice_number": extracted.get("invoice_number"),
-        "date": extracted.get("date") or extracted.get("invoice_date"),
-        "taxable_value": _to_float(extracted.get("taxable_value")),
-        "cgst_amount": _to_float(extracted.get("cgst_amount") or extracted.get("cgst")),
-        "sgst_amount": _to_float(extracted.get("sgst_amount") or extracted.get("sgst")),
-        "igst_amount": _to_float(extracted.get("igst_amount") or extracted.get("igst")),
-        "gst_amount": _to_float(extracted.get("gst_amount") or extracted.get("total_gst")),
-        "gst_percent": _to_float(extracted.get("gst_percent") or extracted.get("gst_rate")),
-        "total_amount": _to_float(extracted.get("total_amount") or extracted.get("grand_total")),
-        "hsn_code": extracted.get("hsn_code") or extracted.get("hsn"),
-        "product_description": extracted.get("product_description") or extracted.get("description"),
+        "supplier_name": _unwrap(extracted.get("supplier_name")),
+        "supplier_gstin": _unwrap(extracted.get("supplier_gstin")) or _unwrap(extracted.get("gstin")),
+        "invoice_number": _unwrap(extracted.get("invoice_number")),
+        "date": _unwrap(extracted.get("date")) or _unwrap(extracted.get("invoice_date")),
+        "taxable_value": _to_float(_unwrap(extracted.get("taxable_value"))),
+        "cgst_amount": _to_float(_unwrap(extracted.get("cgst_amount")) or _unwrap(extracted.get("cgst"))),
+        "sgst_amount": _to_float(_unwrap(extracted.get("sgst_amount")) or _unwrap(extracted.get("sgst"))),
+        "igst_amount": _to_float(_unwrap(extracted.get("igst_amount")) or _unwrap(extracted.get("igst"))),
+        "gst_amount": _to_float(_unwrap(extracted.get("gst_amount")) or _unwrap(extracted.get("total_gst")) or _unwrap(extracted.get("total_gst_amount"))),
+        "gst_percent": _to_float(_unwrap(extracted.get("gst_percent")) or _unwrap(extracted.get("gst_rate"))),
+        "total_amount": _to_float(_unwrap(extracted.get("total_amount")) or _unwrap(extracted.get("grand_total"))),
+        "hsn_code": hsn_raw,
+        "product_description": desc_raw,
         "status": "processing",
         "file_url": saved_path,
         "ocr_raw_text": extracted.get("raw_text", ""),
-        "confidence_scores": extracted.get("confidence_scores"),
+        "confidence_scores": confidence_scores,
     }
     result = queries.insert_invoice(user["uid"], invoice_data)
     if not result:
