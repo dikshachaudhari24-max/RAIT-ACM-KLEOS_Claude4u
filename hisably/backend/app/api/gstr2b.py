@@ -1,5 +1,7 @@
 import csv
 import io
+import os
+import tempfile
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -31,13 +33,86 @@ def _embed_mismatch(mismatch: dict, user_id: str):
         pass
 
 
+EXPECTED_COLUMNS = {"supplier_gstin", "invoice_number", "itc_amount"}
+
+
+def _parse_pdf_to_records(content: bytes) -> list[dict]:
+    """Extract GSTR-2B table rows from a PDF file using pdfplumber."""
+    import pdfplumber
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    try:
+        tmp.write(content)
+        tmp.close()
+        records = []
+        with pdfplumber.open(tmp.name) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                for table in tables:
+                    if not table or len(table) < 2:
+                        continue
+                    raw_header = [str(c).strip().lower().replace(" ", "_") for c in table[0] if c]
+                    col_map = {}
+                    for idx, col in enumerate(raw_header):
+                        if "gstin" in col and "supplier" in col:
+                            col_map["supplier_gstin"] = idx
+                        elif "invoice" in col:
+                            col_map["invoice_number"] = idx
+                        elif "itc" in col or "amount" in col:
+                            col_map["itc_amount"] = idx
+                        elif "date" in col or "upload" in col:
+                            col_map["upload_date"] = idx
+                        elif "status" in col:
+                            col_map["status"] = idx
+                    if not EXPECTED_COLUMNS.issubset(col_map.keys()):
+                        continue
+                    for row in table[1:]:
+                        if not row or not any(row):
+                            continue
+                        gstin = str(row[col_map["supplier_gstin"]] or "").strip()
+                        inv_num = str(row[col_map["invoice_number"]] or "").strip()
+                        itc_raw = str(row[col_map.get("itc_amount", -1)] or "0").strip()
+                        import re
+                        itc_raw = re.sub(r"[^\d.]", "", itc_raw)
+                        if not gstin or not inv_num or inv_num.upper() == "TOTAL":
+                            continue
+                        rec = {
+                            "supplier_gstin": gstin,
+                            "invoice_number": inv_num,
+                            "itc_amount": itc_raw,
+                        }
+                        if "upload_date" in col_map and row[col_map["upload_date"]]:
+                            rec["upload_date"] = str(row[col_map["upload_date"]]).strip()
+                        if "status" in col_map and row[col_map["status"]]:
+                            rec["status"] = str(row[col_map["status"]]).strip()
+                        records.append(rec)
+        return records
+    finally:
+        os.unlink(tmp.name)
+
+
+def _parse_csv_to_records(content: bytes) -> list[dict]:
+    text = content.decode("utf-8")
+    return list(csv.DictReader(io.StringIO(text)))
+
+
 @router.post("/upload", response_model=GSTR2BUploadResponse)
 async def upload_gstr2b(file: UploadFile = File(...), user=Depends(verify_jwt)):
-    """Upload a GSTR-2B file for reconciliation."""
+    """Upload a GSTR-2B file (CSV or PDF) for reconciliation."""
     content = await file.read()
-    text = content.decode("utf-8")
-    reader = csv.DictReader(io.StringIO(text))
-    records = list(reader)
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".pdf"):
+        records = _parse_pdf_to_records(content)
+        if not records:
+            raise HTTPException(status_code=400, detail="Could not extract GSTR-2B data from PDF. Ensure it has a table with supplier GSTIN, invoice number, and ITC amount columns.")
+    elif filename.endswith(".csv") or filename.endswith(".xls"):
+        records = _parse_csv_to_records(content)
+    else:
+        try:
+            records = _parse_csv_to_records(content)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Unsupported file format. Upload a CSV or PDF.")
 
     upload_id = str(uuid.uuid4())
     queries.insert_gstr2b_batch(user["uid"], records, upload_id)

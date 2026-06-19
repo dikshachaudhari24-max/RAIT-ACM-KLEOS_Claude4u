@@ -29,7 +29,9 @@ export const GSTR2BScreen = () => {
   };
 
   const handleUpload = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: ['text/csv', 'application/vnd.ms-excel'] });
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['text/csv', 'application/vnd.ms-excel', 'application/pdf'],
+    });
     if (result.canceled) return;
     setUploading(true);
     try {
@@ -37,7 +39,7 @@ export const GSTR2BScreen = () => {
       await loadMismatches();
       Alert.alert('', t('gstr.uploadSuccess'));
     } catch (e) {
-      Alert.alert(t('common.error'), t('gstr.uploadError'));
+      Alert.alert(t('common.error'), e.message || t('gstr.uploadError'));
     }
     setUploading(false);
   };
@@ -133,6 +135,10 @@ export const GSTR2BScreen = () => {
           <StatusChip label={(m.mismatch_type || '').replace(/_/g, ' ')} tone={m.mismatch_type === 'missing_invoice' ? 'warning' : 'danger'} />
         </View>
       ))}
+
+      <View style={{ marginTop: 20, marginBottom: 12 }}>
+        <PrimaryButton title={t('gstr.uploadFile')} icon="cloud-upload-outline" onPress={handleUpload} loading={uploading} />
+      </View>
     </Screen>
   );
 };

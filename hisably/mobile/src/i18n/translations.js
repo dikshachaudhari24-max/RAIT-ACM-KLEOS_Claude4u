@@ -198,8 +198,8 @@ export const translations = {
   'gstr.matchStatus': { en: 'Match Status', hi: 'मिलान स्थिति' },
   'gstr.blockedByType': { en: 'Blocked ITC by Mismatch Type', hi: 'Mismatch के अनुसार रुका ITC' },
   'gstr.actionRequired': { en: 'Action Required: Mismatched Records', hi: 'कार्रवाई चाहिए: गलत Records' },
-  'gstr.uploadFile': { en: 'Upload File', hi: 'File Upload करें' },
-  'gstr.uploadPrompt': { en: 'Upload your GSTR-2B file to start reconciliation', hi: 'मिलान शुरू करने के लिए GSTR-2B file upload करें' },
+  'gstr.uploadFile': { en: 'Upload GSTR-2B (PDF / CSV)', hi: 'GSTR-2B Upload करें (PDF / CSV)' },
+  'gstr.uploadPrompt': { en: 'Upload your GSTR-2B file (PDF or CSV) to start reconciliation', hi: 'मिलान शुरू करने के लिए GSTR-2B file (PDF या CSV) upload करें' },
   'gstr.uploadSuccess': { en: 'GSTR-2B processed successfully', hi: 'GSTR-2B सफलतापूर्वक process हुआ' },
   'gstr.uploadError': { en: 'Upload failed', hi: 'Upload में गड़बड़ हुई' },
 

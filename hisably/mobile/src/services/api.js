@@ -67,7 +67,8 @@ export const api = {
 
   uploadGstr2b: async (fileUri, fileName) => {
     const form = new FormData();
-    form.append('file', { uri: fileUri, name: fileName, type: 'text/csv' });
+    const type = fileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/csv';
+    form.append('file', { uri: fileUri, name: fileName, type });
     return request('/gstr2b/upload', { method: 'POST', body: form });
   },
 
