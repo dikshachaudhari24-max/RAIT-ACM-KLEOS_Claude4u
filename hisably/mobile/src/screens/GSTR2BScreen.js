@@ -29,13 +29,15 @@ export const GSTR2BScreen = () => {
   };
 
   const handleUpload = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['text/csv', 'application/vnd.ms-excel', 'application/pdf'],
-    });
-    if (result.canceled) return;
-    setUploading(true);
     try {
-      await api.uploadGstr2b(result.assets[0].uri, result.assets[0].name);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel', 'application/pdf', 'application/octet-stream', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      setUploading(true);
+      const asset = result.assets[0];
+      await api.uploadGstr2b(asset.uri, asset.name || 'gstr2b.csv');
       await loadMismatches();
       Alert.alert('', t('gstr.uploadSuccess'));
     } catch (e) {
