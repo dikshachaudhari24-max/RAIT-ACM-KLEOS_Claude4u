@@ -13,7 +13,7 @@ const FILINGS = {
   20: { type: 'GSTR-3B', color: colors.danger },
 };
 
-export const ComplianceCalendar = () => {
+export const ComplianceCalendar = ({ onFilingDatePress }) => {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
   const [year, setYear] = useState(today.getFullYear());
@@ -56,9 +56,19 @@ export const ComplianceCalendar = () => {
           return (
             <View key={i} style={styles.cell}>
               {d ? (
-                <View style={[styles.dayWrap, filing && { backgroundColor: filing.color }, todayCell && !filing && styles.todayWrap]}>
-                  <Text style={[typography.caption, { color: filing || todayCell ? '#fff' : colors.textPrimary }]}>{d}</Text>
-                </View>
+                filing && onFilingDatePress ? (
+                  <TouchableOpacity
+                    style={[styles.dayWrap, { backgroundColor: filing.color }]}
+                    onPress={() => onFilingDatePress(d)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[typography.caption, { color: '#fff' }]}>{d}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.dayWrap, filing && { backgroundColor: filing.color }, todayCell && !filing && styles.todayWrap]}>
+                    <Text style={[typography.caption, { color: filing || todayCell ? '#fff' : colors.textPrimary }]}>{d}</Text>
+                  </View>
+                )
               ) : null}
             </View>
           );

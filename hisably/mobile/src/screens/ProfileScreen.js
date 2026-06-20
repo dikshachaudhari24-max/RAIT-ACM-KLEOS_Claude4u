@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radius, shadow } from '../theme';
 import { ComplianceCalendar } from '../components';
+import { GSTBottomSheet } from '../components/GSTBottomSheet';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
@@ -19,6 +20,7 @@ export const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuthStore();
   const t = useT();
   const [stats, setStats] = useState({ invoices: 0, itc: 0, tasks: 0 });
+  const [sheetDay, setSheetDay] = useState(null);
 
   const name = user?.name || 'User';
   const phone = user?.phone || '';
@@ -108,7 +110,7 @@ export const ProfileScreen = ({ navigation }) => {
               <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>{t('profile.gstr1DueNote')}</Text>
             </View>
           </View>
-          <ComplianceCalendar />
+          <ComplianceCalendar onFilingDatePress={(day) => setSheetDay(day)} />
         </View>
 
         <View style={styles.card}>
@@ -125,6 +127,7 @@ export const ProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <GSTBottomSheet visible={sheetDay !== null} day={sheetDay} onClose={() => setSheetDay(null)} />
     </View>
   );
 };
