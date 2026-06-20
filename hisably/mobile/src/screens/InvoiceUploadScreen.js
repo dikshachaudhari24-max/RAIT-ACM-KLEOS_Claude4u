@@ -68,6 +68,7 @@ export const InvoiceUploadScreen = ({ navigation }) => {
       if (res.extracted) {
         navigation.navigate('InvoiceDetail', {
           data: { ...res.extracted, status: res.status, invoice_id: res.invoice_id },
+          mismatches: res.mismatches || [],
         });
       } else {
         Alert.alert(t('upload.uploaded'), `Status: ${res.status}`);

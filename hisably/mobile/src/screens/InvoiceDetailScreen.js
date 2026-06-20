@@ -22,6 +22,7 @@ const FieldRow = ({ label, value }) => (
 
 export const InvoiceDetailScreen = ({ navigation, route }) => {
   const data = route.params?.data || {};
+  const mismatches = route.params?.mismatches || [];
   const t = useT();
   const st = statusTone(data.status);
 
@@ -33,8 +34,14 @@ export const InvoiceDetailScreen = ({ navigation, route }) => {
       onLeftPress={() => navigation.goBack()}
     >
       <View style={styles.resultHeader}>
-        <Ionicons name="checkmark-circle" size={28} color={colors.success} />
-        <Text style={[typography.title, { color: colors.success, marginLeft: 10 }]}>{t('verify.extracted')}</Text>
+        <Ionicons
+          name={mismatches.length > 0 ? 'alert-circle' : 'checkmark-circle'}
+          size={28}
+          color={mismatches.length > 0 ? colors.danger : colors.success}
+        />
+        <Text style={[typography.title, { color: mismatches.length > 0 ? colors.danger : colors.success, marginLeft: 10 }]}>
+          {mismatches.length > 0 ? 'Issues Found' : t('verify.extracted')}
+        </Text>
       </View>
 
       <StatusChip label={(data.status || 'processing').replace(/_/g, ' ')} tone={st.tone} uppercase />
@@ -62,7 +69,7 @@ export const InvoiceDetailScreen = ({ navigation, route }) => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.saveBtn} onPress={() => navigation.navigate('InvoiceValidation', { invoice: data, mismatches: [] })}>
+      <TouchableOpacity style={styles.saveBtn} onPress={() => navigation.navigate('InvoiceValidation', { invoice: data, mismatches })}>
         <Ionicons name="shield-checkmark" size={20} color="#fff" />
         <Text style={[typography.labelBold, { color: '#fff', marginLeft: 8 }]}>Validate Invoice</Text>
       </TouchableOpacity>

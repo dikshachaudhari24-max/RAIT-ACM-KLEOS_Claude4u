@@ -43,8 +43,9 @@ def _run_ocr(file_path: str, user_id: str) -> dict:
         return {"error": f"OCR failed: {e}"}
 
 
-def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str):
+def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str) -> list:
     update_data = {}
+    mismatches = []
 
     gstin = invoice_data.get("supplier_gstin")
     if gstin:
@@ -53,6 +54,15 @@ def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str):
             gstin_result = validate_gstin(gstin)
             if not gstin_result["valid"]:
                 update_data["status"] = "error_gstin"
+                mismatches.append({
+                    "mismatch_type": "gstin_mismatch",
+                    "supplier_name": invoice_data.get("supplier_name", ""),
+                    "invoice_number": invoice_data.get("invoice_number", ""),
+                    "error_type": gstin_result.get("error_type", ""),
+                    "error_message": gstin_result.get("error_message", ""),
+                    "corrected_gstin": gstin_result.get("corrected_gstin"),
+                    "itc_at_risk": invoice_data.get("gst_amount", 0),
+                })
                 if gstin_result.get("corrected_gstin"):
                     update_data["supplier_gstin"] = gstin_result["corrected_gstin"]
         except Exception:
@@ -65,6 +75,13 @@ def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str):
             hsn_result = validate_hsn(hsn)
             if not hsn_result["valid"]:
                 update_data["status"] = "error_hsn"
+                mismatches.append({
+                    "mismatch_type": "hsn_mismatch",
+                    "supplier_name": invoice_data.get("supplier_name", ""),
+                    "invoice_number": invoice_data.get("invoice_number", ""),
+                    "error_message": hsn_result.get("error_message", ""),
+                    "suggested_code": hsn_result.get("suggested_code"),
+                })
                 if hsn_result.get("suggested_code"):
                     update_data["hsn_code"] = hsn_result["suggested_code"]
         except Exception:
@@ -105,6 +122,8 @@ def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str):
         upsert_vector(namespace, invoice_id, vector, {"text": text, "record_type": "invoice"})
     except Exception:
         pass
+
+    return mismatches
 
 
 @router.post("/upload")
@@ -167,7 +186,7 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(verify_jwt))
     if not result:
         raise HTTPException(status_code=500, detail="Failed to save invoice")
 
-    _validate_and_score(result["id"], invoice_data, user["uid"])
+    mismatches = _validate_and_score(result["id"], invoice_data, user["uid"])
 
     updated = queries.get_invoice_by_id(result["id"])
     final = updated or result
@@ -175,6 +194,7 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(verify_jwt))
     return {
         "invoice_id": final.get("id", result.get("id", "")),
         "status": final.get("status", "processing"),
+        "mismatches": mismatches,
         "extracted": {
             "supplier_name": final.get("supplier_name") or "",
             "supplier_gstin": final.get("supplier_gstin") or "",
