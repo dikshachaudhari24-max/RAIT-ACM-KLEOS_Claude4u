@@ -83,27 +83,50 @@ export const VoiceScreen = ({ navigation }) => {
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
       if (uri) {
-        setHistory((prev) => [...prev, { role: 'user', content: '🎤 Voice message sent...' }]);
         setLoading(true);
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
         try {
-          const res = await api.voiceQuery(uri);
-          const userText = res.transcribed_text || 'Voice input';
-          setHistory((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'user', content: userText };
-            return [...updated, { role: 'assistant', content: res.response_text }];
-          });
-          speakResponse(res.response_text);
+          const tr = await api.transcribeAudio(uri);
+          const userText = (tr.text || '').trim() || 'Voice input';
+          await respondToQuery(userText);
         } catch (e) {
           setHistory((prev) => [...prev, { role: 'assistant', content: t('voice.error') }]);
+          setLoading(false);
         }
-        setLoading(false);
-        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
       }
     } catch (err) {
       recordingRef.current = null;
+      setLoading(false);
     }
+  };
+
+  const STOP_WORDS = ['stop', 'band karo', 'bye', 'goodbye', 'thank you', 'thanks', 'bas', 'khatam'];
+
+  const respondToQuery = async (userText) => {
+    setHistory((prev) => [...prev, { role: 'user', content: userText }]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+
+    // End session on stop words — say goodbye by name
+    if (STOP_WORDS.some((w) => userText.toLowerCase().includes(w))) {
+      const bye = firstName ? `Goodbye ${firstName}! Talk to you soon.` : 'Goodbye! Talk to you soon.';
+      setHistory((prev) => [...prev, { role: 'assistant', content: bye }]);
+      speakResponse(bye);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const recentHistory = history.slice(-10);
+      const res = await api.voiceConversation(userText, recentHistory, 'English');
+      const reply = res.response || t('voice.error');
+      setHistory((prev) => [...prev, { role: 'assistant', content: reply }]);
+      speakResponse(reply);
+    } catch (e) {
+      setHistory((prev) => [...prev, { role: 'assistant', content: t('voice.error') }]);
+    }
+    setLoading(false);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
   };
 
   const speakResponse = (text) => {
@@ -131,19 +154,8 @@ export const VoiceScreen = ({ navigation }) => {
   const handleSend = async (text) => {
     const q = (text || query).trim();
     if (!q) return;
-    setHistory((prev) => [...prev, { role: 'user', content: q }]);
     setQuery('');
-    setLoading(true);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
-    try {
-      const res = await api.chatQuery(q);
-      setHistory((prev) => [...prev, { role: 'assistant', content: res.response_text }]);
-      speakResponse(res.response_text);
-    } catch (e) {
-      setHistory((prev) => [...prev, { role: 'assistant', content: t('voice.error') }]);
-    }
-    setLoading(false);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    await respondToQuery(q);
   };
 
   const idle = history.length === 0;
