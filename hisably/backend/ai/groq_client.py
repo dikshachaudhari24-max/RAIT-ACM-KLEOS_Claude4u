@@ -82,7 +82,7 @@ def generate_vision_extraction(image_path: str) -> dict:
             }
         ],
         temperature=0.1,
-        max_tokens=2048,
+        max_tokens=4096,
     )
     raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
