@@ -71,6 +71,46 @@ def update_invoice(invoice_id: str, data: dict) -> dict:
     return result.data[0] if result.data else {}
 
 
+def find_duplicate_invoice(user_id: str, invoice_number, supplier_gstin, total_amount) -> dict | None:
+    """Return an existing invoice that matches this one, or None.
+
+    A duplicate is the same user's invoice with the same invoice number AND
+    supplier GSTIN. When the invoice number is absent (handwritten/voice), fall
+    back to matching supplier GSTIN + total amount.
+    """
+    client = get_admin_client()
+    inv_num = (str(invoice_number).strip() if invoice_number else "")
+    gstin = (str(supplier_gstin).strip() if supplier_gstin else "")
+
+    if inv_num and gstin:
+        result = (
+            client.table("invoices")
+            .select("*")
+            .eq("user_id", user_id)
+            .ilike("invoice_number", inv_num)
+            .ilike("supplier_gstin", gstin)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+
+    if not inv_num and gstin and total_amount:
+        result = (
+            client.table("invoices")
+            .select("*")
+            .eq("user_id", user_id)
+            .ilike("supplier_gstin", gstin)
+            .eq("total_amount", total_amount)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+
+    return None
+
+
 # ──────────────────────────── GSTR-2B Records ────────────────────────────
 
 def insert_gstr2b_record(user_id: str, data: dict) -> dict:
