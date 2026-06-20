@@ -238,5 +238,29 @@
     "total_amount": 28875.00,
     "hsn_code": "1101",
     "product_description": "Wheat flour atta 10kg bags x25"
+  },
+  {
+    "supplier_name": "Verma Plastics (Invalid GSTIN - too short)",
+    "supplier_gstin": "27AABCV12",
+    "invoice_number": "VP-2026-0011",
+    "date": "2026-06-19",
+    "taxable_value": 42000.00,
+    "gst_amount": 7560.00,
+    "gst_percent": 18,
+    "total_amount": 49560.00,
+    "hsn_code": "3917",
+    "product_description": "PVC pipes and fittings"
+  },
+  {
+    "supplier_name": "Chopra Electronics (Invalid GSTIN - wrong format)",
+    "supplier_gstin": "99XYZCE0000Q9Z$",
+    "invoice_number": "CE-2026-0088",
+    "date": "2026-06-20",
+    "taxable_value": 68000.00,
+    "gst_amount": 12240.00,
+    "gst_percent": 18,
+    "total_amount": 80240.00,
+    "hsn_code": "8518",
+    "product_description": "Bluetooth speakers and headphones"
   }
 ]
