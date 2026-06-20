@@ -15,7 +15,7 @@ def _compute_check_digit(gstin_14: str) -> str:
         digit_sum = product // 36 + product % 36
         total += digit_sum
     remainder = total % 36
-    return _CHARSET[remainder]
+    return _CHARSET[(36 - remainder) % 36]
 
 
 def validate_gstin(gstin: str) -> dict:
