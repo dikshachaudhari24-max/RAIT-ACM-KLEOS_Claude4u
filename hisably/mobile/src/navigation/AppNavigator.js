@@ -22,6 +22,7 @@ import {
   VoiceScreen,
   SupplierScreen,
   ProfileScreen,
+  CADashboardScreen,
 } from '../screens';
 
 const Stack = createNativeStackNavigator();
@@ -56,6 +57,7 @@ const MainStack = () => (
     <RootStack.Screen name="InvoiceList" component={InvoiceListScreen} />
     <RootStack.Screen name="InvoiceValidation" component={InvoiceValidationScreen} />
     <RootStack.Screen name="Profile" component={ProfileScreen} />
+    <RootStack.Screen name="CADashboard" component={CADashboardScreen} />
   </RootStack.Navigator>
 );
 
