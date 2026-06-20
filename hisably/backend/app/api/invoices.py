@@ -119,9 +119,17 @@ def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str) -> li
         )
         vector = embed_text(text)
         namespace = get_namespace(user_id, "invoice")
-        upsert_vector(namespace, invoice_id, vector, {"text": text, "record_type": "invoice"})
-    except Exception:
-        pass
+        upsert_vector(namespace, invoice_id, vector, {
+            "text": text,
+            "record_type": "invoice",
+            "invoice_number": str(invoice_data.get("invoice_number") or ""),
+            "supplier_name": str(invoice_data.get("supplier_name") or ""),
+        })
+        print(f"[embedding] stored invoice {invoice_id} in Pinecone namespace {namespace}")
+    except Exception as e:
+        # Surface the reason instead of silently swallowing it — most often a
+        # missing/invalid PINECONE_API_KEY or PINECONE_INDEX_NAME in .env.
+        print(f"[embedding] FAILED to store invoice {invoice_id} in vector DB: {e}")
 
     return mismatches
 
@@ -162,6 +170,35 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(verify_jwt))
         desc_raw = _unwrap(desc_raw[0]) if desc_raw else None
 
     confidence_scores = _build_confidence_scores(extracted) or extracted.get("confidence_scores")
+
+    # Duplicate guard — same invoice number + GSTIN already uploaded by this user
+    dup_invoice_number = _unwrap(extracted.get("invoice_number"))
+    dup_gstin = _unwrap(extracted.get("supplier_gstin")) or _unwrap(extracted.get("gstin"))
+    dup_total = _to_float(_unwrap(extracted.get("total_amount")) or _unwrap(extracted.get("grand_total")))
+    existing = queries.find_duplicate_invoice(user["uid"], dup_invoice_number, dup_gstin, dup_total)
+    if existing:
+        return {
+            "invoice_id": existing.get("id", ""),
+            "status": existing.get("status", "validated"),
+            "already_exists": True,
+            "message": "This invoice has already been uploaded.",
+            "mismatches": [],
+            "extracted": {
+                "supplier_name": existing.get("supplier_name") or "",
+                "supplier_gstin": existing.get("supplier_gstin") or "",
+                "invoice_number": existing.get("invoice_number") or "",
+                "date": str(existing.get("date") or ""),
+                "taxable_value": float(existing.get("taxable_value") or 0),
+                "cgst_amount": float(existing.get("cgst_amount") or 0),
+                "sgst_amount": float(existing.get("sgst_amount") or 0),
+                "igst_amount": float(existing.get("igst_amount") or 0),
+                "gst_amount": float(existing.get("gst_amount") or 0),
+                "gst_percent": float(existing.get("gst_percent") or 0),
+                "total_amount": float(existing.get("total_amount") or 0),
+                "hsn_code": existing.get("hsn_code") or "",
+                "product_description": existing.get("product_description") or "",
+            },
+        }
 
     invoice_data = {
         "supplier_name": _unwrap(extracted.get("supplier_name")),
