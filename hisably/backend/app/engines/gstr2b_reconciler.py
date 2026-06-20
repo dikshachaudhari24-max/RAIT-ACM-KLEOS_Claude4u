@@ -78,3 +78,42 @@ def reconcile(
             })
 
     return mismatches
+
+
+def reconcile_summary(invoices: list[dict], gstr2b_records: list[dict]) -> dict:
+    """Return accurate matched / mismatched / missing counts for invoices vs GSTR-2B.
+
+    - matched: invoice found in GSTR-2B with matching GSTIN and amount in tolerance
+    - mismatched: found but GSTIN or amount differs (gstin_mismatch + amount_mismatch)
+    - missing: invoice not present in GSTR-2B at all (missing_invoice)
+    - in_2b_not_in_books: GSTR-2B entries with no matching uploaded invoice
+    """
+    mismatches = reconcile(invoices, gstr2b_records)
+    total_invoices = len(invoices)
+
+    missing = sum(1 for m in mismatches if m.get("mismatch_type") == "missing_invoice")
+    mismatched = sum(
+        1 for m in mismatches
+        if m.get("mismatch_type") in ("gstin_mismatch", "amount_mismatch")
+    )
+    matched = max(0, total_invoices - missing - mismatched)
+
+    invoice_nums = {str(inv.get("invoice_number", "")).strip().upper() for inv in invoices}
+    in_2b_not_in_books = sum(
+        1 for rec in gstr2b_records
+        if str(rec.get("invoice_number", "")).strip().upper() not in invoice_nums
+    )
+
+    total_itc_at_risk = sum(
+        float(m.get("itc_at_risk") or m.get("amount_difference") or 0) for m in mismatches
+    )
+
+    return {
+        "total_invoices": total_invoices,
+        "total_2b_records": len(gstr2b_records),
+        "matched": matched,
+        "mismatched": mismatched,
+        "missing": missing,
+        "in_2b_not_in_books": in_2b_not_in_books,
+        "total_itc_at_risk": round(total_itc_at_risk, 2),
+    }
