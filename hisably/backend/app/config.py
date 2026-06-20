@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     # fallback when Groq hits its daily rate limit. Get a free key at
     # https://aistudio.google.com/apikey
     GEMINI_API_KEY: str = ""
-    GEMINI_VISION_MODEL: str = "gemini-2.0-flash"
-    GEMINI_TEXT_MODEL: str = "gemini-2.0-flash"
+    GEMINI_VISION_MODEL: str = "gemini-2.5-flash"
+    GEMINI_TEXT_MODEL: str = "gemini-2.5-flash"
     USE_GEMINI_VISION: bool = True
 
     @model_validator(mode="after")
