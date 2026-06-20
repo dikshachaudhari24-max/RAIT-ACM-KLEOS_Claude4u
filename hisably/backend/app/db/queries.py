@@ -95,6 +95,18 @@ def find_duplicate_invoice(user_id: str, invoice_number, supplier_gstin, total_a
         if result.data:
             return result.data[0]
 
+    if inv_num and not gstin:
+        result = (
+            client.table("invoices")
+            .select("*")
+            .eq("user_id", user_id)
+            .ilike("invoice_number", inv_num)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+
     if not inv_num and gstin and total_amount:
         result = (
             client.table("invoices")
