@@ -12,3 +12,5 @@ export { SupplierScreen } from './SupplierScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { InvoiceValidationScreen } from './InvoiceValidationScreen';
 export { CADashboardScreen } from './CADashboardScreen';
+export { AnnualReportScreen } from './AnnualReportScreen';
+export { SupplierDetailScreen } from './SupplierDetailScreen';

@@ -23,6 +23,8 @@ import {
   SupplierScreen,
   ProfileScreen,
   CADashboardScreen,
+  AnnualReportScreen,
+  SupplierDetailScreen,
 } from '../screens';
 
 const Stack = createNativeStackNavigator();
@@ -58,6 +60,8 @@ const MainStack = () => (
     <RootStack.Screen name="InvoiceValidation" component={InvoiceValidationScreen} />
     <RootStack.Screen name="Profile" component={ProfileScreen} />
     <RootStack.Screen name="CADashboard" component={CADashboardScreen} />
+    <RootStack.Screen name="AnnualReport" component={AnnualReportScreen} />
+    <RootStack.Screen name="SupplierDetail" component={SupplierDetailScreen} />
   </RootStack.Navigator>
 );
 

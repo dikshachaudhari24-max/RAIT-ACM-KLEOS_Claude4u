@@ -44,9 +44,10 @@ async def health():
     return {"status": "ok", "version": "2.0", "product": "Hisably"}
 
 
-from app.api import analytics, auth, ca_dashboard, chatbot, gstr2b, invoices, itc, risk, suppliers, tasks, voice, webhook  # noqa: E402
+from app.api import analytics, annual_report, auth, ca_dashboard, chatbot, gstr2b, invoices, itc, risk, suppliers, tasks, voice, webhook  # noqa: E402
 
 app.include_router(auth.router)
+app.include_router(annual_report.router)
 app.include_router(invoices.router)
 app.include_router(gstr2b.router)
 app.include_router(itc.router)

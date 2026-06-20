@@ -8,6 +8,7 @@ import { GSTBottomSheet } from '../components/GSTBottomSheet';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
+import { currentFinancialYear } from '../utils/format';
 
 const formatINR = (n) => {
   const v = Number(n || 0);
@@ -76,13 +77,18 @@ export const ProfileScreen = ({ navigation }) => {
             <Text style={[typography.monoCaption, styles.statLabel]}>{t('profile.totalInvoices')}</Text>
             <Text style={[typography.amount, { color: colors.textPrimary }]}>{stats.invoices.toLocaleString('en-IN')}</Text>
           </View>
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('AnnualReport', { financialYear: currentFinancialYear() })}
+          >
+            <Ionicons name="chevron-forward" size={18} color={colors.outline} style={styles.statChevron} />
             <View style={[styles.statIcon, { backgroundColor: colors.neutralBg }]}>
               <Ionicons name="checkmark-done-outline" size={18} color={colors.primary} />
             </View>
             <Text style={[typography.monoCaption, styles.statLabel]}>{t('profile.itcClaimed')}</Text>
             <Text style={[typography.amount, { color: colors.textPrimary }]}>{formatINR(stats.itc)}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.pendingCard} onPress={() => navigation.navigate('Tabs', { screen: 'Tasks' })} activeOpacity={0.85}>
@@ -144,6 +150,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.screenH, paddingTop: 24, paddingBottom: 40 },
   statRow: { flexDirection: 'row', justifyContent: 'space-between' },
   statCard: { width: '48%', backgroundColor: colors.surface, borderRadius: radius.card, padding: 16, ...shadow.card },
+  statChevron: { position: 'absolute', top: 12, right: 12 },
   statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   statLabel: { color: colors.textSecondary, marginBottom: 4 },
   pendingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.card, padding: 16, marginTop: spacing.cardGap, ...shadow.card },

@@ -151,6 +151,13 @@ export const api = {
     return `${API_BASE}/invoice/export/${format}${qs ? `?${qs}` : ''}`;
   },
 
+  getAnnualReport: (financialYear) =>
+    request(`/annual-report/itc?financial_year=${encodeURIComponent(financialYear)}`),
+  getSupplierAnnualDetail: (supplierGstin, financialYear) =>
+    request(`/annual-report/supplier-detail?supplier_gstin=${encodeURIComponent(supplierGstin)}&financial_year=${encodeURIComponent(financialYear)}`),
+  getAnnualReportExportUrl: (financialYear) =>
+    `${API_BASE}/annual-report/export?financial_year=${encodeURIComponent(financialYear)}`,
+
   getCaDashboard: (userId) =>
     request(`/ca/dashboard${userId ? `?user_id=${userId}` : ''}`),
   getCaAiInsights: (userId) =>

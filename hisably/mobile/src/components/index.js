@@ -7,6 +7,7 @@ export { RiskScoreChip } from './RiskScoreChip';
 export { ConfidenceDot } from './ConfidenceDot';
 export { SupplierBadge } from './SupplierBadge';
 export { EmptyState } from './EmptyState';
+export { Skeleton, SkeletonCard } from './Skeleton';
 export { AlertRow } from './AlertRow';
 export { LanguageChips } from './LanguageChips';
 export { GlobeButton } from './GlobeButton';
