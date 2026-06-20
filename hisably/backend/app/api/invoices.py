@@ -150,6 +150,12 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(verify_jwt))
         f.write(content)
 
     extracted = _run_ocr(saved_path, user["uid"])
+    print(f"[upload] OCR result keys: {list(extracted.keys())}")
+    print(f"[upload] extraction_method: {extracted.get('extraction_method')}")
+    print(f"[upload] supplier_name: {extracted.get('supplier_name')}")
+    print(f"[upload] total_amount: {extracted.get('total_amount')}")
+    print(f"[upload] error: {extracted.get('error')}")
+    print(f"[upload] parse_error: {extracted.get('parse_error')}")
 
     if extracted.get("error"):
         invoice_data = {
