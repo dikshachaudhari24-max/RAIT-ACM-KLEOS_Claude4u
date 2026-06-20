@@ -190,6 +190,17 @@ def _send_whatsapp_mismatch_alert(user_id: str, mismatches: list):
         print(f"WhatsApp alert error: {e}")
 
 
+@router.get("/summary")
+async def gstr2b_summary(user=Depends(verify_jwt)):
+    """Return accurate matched / mismatched / missing counts by reconciling live data."""
+    from app.engines.gstr2b_reconciler import reconcile_summary
+
+    invoices, _ = queries.get_invoices(user["uid"], page=1, per_page=1000)
+    gstr2b_records = queries.get_gstr2b_records(user["uid"])
+    summary = reconcile_summary(invoices, gstr2b_records)
+    return summary
+
+
 @router.get("/mismatches", response_model=MismatchListResponse)
 async def get_mismatches(user=Depends(verify_jwt)):
     """Get list of invoice vs GSTR-2B mismatches."""
