@@ -149,6 +149,20 @@ class SupplierMessageResponse(BaseModel):
     channel: str
 
 
+class GenerateSupplierMessageRequest(BaseModel):
+    supplier_name: str
+    invoice_number: str
+    invoice_date: str
+    mismatch_type: str
+    mismatch_detail: str
+    blocked_itc_amount: float
+    buyer_gstin: str
+
+
+class GenerateSupplierMessageResponse(BaseModel):
+    message: str
+
+
 class ChatbotTextRequest(BaseModel):
     query: str
 

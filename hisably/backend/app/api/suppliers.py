@@ -4,6 +4,8 @@ from app.db import queries
 from app.deps import verify_jwt
 from app.engines.supplier_health import compute_supplier_score
 from app.schemas.all_schemas import (
+    GenerateSupplierMessageRequest,
+    GenerateSupplierMessageResponse,
     SupplierListResponse,
     SupplierMessageRequest,
     SupplierMessageResponse,
@@ -55,6 +57,46 @@ async def list_suppliers(user=Depends(verify_jwt)):
         })
 
     return SupplierListResponse(suppliers=items)
+
+
+@router.post("/generate-supplier-message", response_model=GenerateSupplierMessageResponse)
+async def generate_supplier_message(req: GenerateSupplierMessageRequest, user=Depends(verify_jwt)):
+    """Generate a bilingual supplier correction message via Groq LLM with amount masking."""
+    from ai.groq_client import _chat
+
+    masked_amount = "[ITC_AMOUNT_TOKEN]"
+    real_amount = f"₹{req.blocked_itc_amount:,.2f}"
+
+    system_prompt = (
+        "You are a GST compliance assistant. Generate a formal WhatsApp message to a supplier "
+        "requesting GST amendment. The message must be bilingual — first in Hindi, then the same "
+        "message in English below it. Be polite, professional, and under 150 words total for each "
+        "language version. Do not add any explanation outside the message itself. Output only the "
+        "message text, nothing else."
+    )
+    user_prompt = (
+        f"Generate a supplier correction message with these details:\n"
+        f"- Supplier Name: {req.supplier_name}\n"
+        f"- Invoice Number: {req.invoice_number}\n"
+        f"- Invoice Date: {req.invoice_date}\n"
+        f"- Issue Type: {req.mismatch_type}\n"
+        f"- Specific Problem: {req.mismatch_detail}\n"
+        f"- ITC Blocked Amount: {masked_amount}\n"
+        f"- Buyer GSTIN: {req.buyer_gstin}\n"
+        f"- Request: Ask supplier to correct and re-file their GSTR-1 amendment at the earliest."
+    )
+
+    try:
+        raw_message = _chat(
+            system_prompt=system_prompt,
+            user_message=user_prompt,
+            model="llama3-8b-8192",
+            temperature=0.3,
+        )
+        message = raw_message.replace(masked_amount, real_amount)
+        return GenerateSupplierMessageResponse(message=message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Message generation failed: {str(e)}")
 
 
 @router.post("/message", response_model=SupplierMessageResponse)
