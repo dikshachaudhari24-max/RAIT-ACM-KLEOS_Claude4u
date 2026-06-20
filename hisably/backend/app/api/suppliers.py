@@ -65,7 +65,7 @@ async def generate_supplier_message(req: GenerateSupplierMessageRequest, user=De
     from ai.groq_client import _chat
 
     masked_amount = "[ITC_AMOUNT_TOKEN]"
-    real_amount = f"₹{req.blocked_itc_amount:,.2f}"
+    real_amount = f"₹{float(req.blocked_itc_amount or 0):,.2f}"
 
     system_prompt = (
         "You are a GST compliance assistant. Generate a formal WhatsApp message to a supplier "
@@ -90,7 +90,7 @@ async def generate_supplier_message(req: GenerateSupplierMessageRequest, user=De
         raw_message = _chat(
             system_prompt=system_prompt,
             user_message=user_prompt,
-            model="llama3-8b-8192",
+            model="llama-3.3-70b-versatile",
             temperature=0.3,
         )
         message = raw_message.replace(masked_amount, real_amount)
