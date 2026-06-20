@@ -102,6 +102,12 @@ export const api = {
   },
   getAnalytics: (month) => request(`/analytics/monthly${month ? `?month=${month}` : ''}`),
   getInvoiceDetail: (invoiceId) => request(`/invoice/detail?invoice_id=${invoiceId}`),
+
+  generateSupplierMessage: (data) =>
+    request('/supplier/generate-supplier-message', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   health: () => request('/health'),
 
   searchInvoices: (params = {}) => {
