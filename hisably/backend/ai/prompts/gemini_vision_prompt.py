@@ -9,6 +9,8 @@ GEMINI_VISION_PROMPT = """You are an EXPERT Indian GST invoice reader specialisi
 
 Extract the invoice fields from the image. The writing may be messy, slanted, or partially faded — read it digit-by-digit and letter-by-letter.
 
+The photo may be ROTATED (sideways or upside-down) or taken at an angle — mentally rotate it to read the text in its correct orientation before extracting.
+
 ================ HANDWRITING DISAMBIGUATION ================
 Handwritten characters are easily misread. Watch these false-positive pairs and decide using the surrounding strokes AND the math checks below:
 - 0 vs O (letter)   - 1 vs 7 vs I vs l   - 2 vs Z

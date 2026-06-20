@@ -123,8 +123,13 @@ def _flatten_vision_result(result: dict) -> dict:
 
 
 def _try_vision_extraction(file_path: str, user_id: str) -> dict:
-    """Send the image directly to Groq vision model for handwritten/low-quality docs."""
+    """Send the image to the vision LLM (Gemini preferred) for handwritten/low-quality docs.
+
+    The ORIGINAL color image is sent — vision models read full-colour phone photos
+    (including rotated/handwritten ones) far better than a binarized/deskewed copy.
+    """
     ext = os.path.splitext(file_path)[1].lower()
+    temp_img = None
     if ext == ".pdf":
         import fitz
         doc = fitz.open(file_path)
@@ -132,42 +137,63 @@ def _try_vision_extraction(file_path: str, user_id: str) -> dict:
         img_path = os.path.join(tempfile.gettempdir(), "vision_page0.png")
         pix.save(img_path)
         doc.close()
+        temp_img = img_path
     else:
-        img_path = preprocess_image(file_path)
+        # Send the raw photo as-is (no preprocessing) — best for Gemini.
+        img_path = file_path
 
     try:
         from ai.groq_client import generate_vision_extraction
         raw_result = generate_vision_extraction(img_path)
         structured = _flatten_vision_result(raw_result)
-        structured["extraction_method"] = "vision_llm"
+        structured.setdefault("extraction_method", raw_result.get("extraction_method", "vision_llm"))
         structured["user_id"] = user_id
         return structured
     except Exception as e:
         return {"error": f"Vision extraction failed: {e}", "extraction_method": "vision_llm"}
     finally:
-        if img_path != file_path and os.path.exists(img_path):
-            os.unlink(img_path)
+        if temp_img and os.path.exists(temp_img):
+            os.unlink(temp_img)
 
 
 def extract(file_path: str, user_id: str) -> dict:
-    """Extract structured invoice fields. Tries OCR first, falls back to vision for handwritten docs."""
+    """Extract structured invoice fields.
+
+    Strategy:
+      - PHOTOS (jpg/png/...): go straight to the vision LLM (Gemini). Phone photos
+        of invoices — especially handwritten/rotated ones — are read far more
+        accurately end-to-end by a vision model than by Tesseract OCR + text LLM.
+      - DIGITAL PDFs (with embedded text): use the fast, exact text → LLM path.
+      - SCANNED PDFs / vision failures: fall back to OCR + text LLM.
+    """
     if not os.path.exists(file_path):
         return {"error": f"File not found: {file_path}"}
 
     ext = os.path.splitext(file_path)[1].lower()
+    image_exts = (".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp")
 
-    # Step 1: Try standard OCR path
+    if ext not in image_exts and ext != ".pdf":
+        return {"error": f"Unsupported file type: {ext}"}
+
+    from ai.gemini_client import is_available as _gemini_available
+
+    # ── Path A: image photos → vision LLM first (Gemini is best for these) ──
+    if ext in image_exts and _gemini_available():
+        vision_result = _try_vision_extraction(file_path, user_id)
+        if not vision_result.get("error") and not vision_result.get("parse_error"):
+            vision_result.setdefault("raw_text", "")
+            return vision_result
+        # Vision failed — fall through to OCR below.
+
+    # ── Path B: digital PDF text, or OCR fallback ──
     try:
         if ext == ".pdf":
             raw_text = _extract_text_from_pdf(file_path)
-        elif ext in (".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"):
-            raw_text = _extract_text_from_image(file_path)
         else:
-            return {"error": f"Unsupported file type: {ext}"}
-    except Exception as e:
+            raw_text = _extract_text_from_image(file_path)
+    except Exception:
         raw_text = ""
 
-    # Step 2: If OCR got enough text, try LLM structuring
     if raw_text and len(raw_text.strip()) >= settings.OCR_MIN_TEXT_LENGTH:
         try:
             from ai.groq_client import generate_invoice_extraction
@@ -176,29 +202,23 @@ def extract(file_path: str, user_id: str) -> dict:
             structured["user_id"] = user_id
             structured["extraction_method"] = "ocr_llm"
 
-            # Step 3: Check confidence — if too low, fall back to vision
             avg_conf = _avg_confidence(structured)
             if avg_conf >= settings.VISION_CONFIDENCE_THRESHOLD:
                 return structured
 
-            # Low confidence — try vision path as supplement
             vision_result = _try_vision_extraction(file_path, user_id)
             if not vision_result.get("error") and not vision_result.get("parse_error"):
                 vision_result["raw_text"] = raw_text
-                vision_result["ocr_fallback_reason"] = f"OCR confidence {avg_conf:.2f} below threshold {settings.VISION_CONFIDENCE_THRESHOLD}"
+                vision_result["ocr_fallback_reason"] = f"OCR confidence {avg_conf:.2f} below threshold"
                 return vision_result
-
-            # Vision also failed — return OCR result (better than nothing)
             return structured
-
-        except Exception as e:
+        except Exception:
             pass
 
-    # Step 4: OCR text too sparse or empty — go straight to vision
+    # ── Path C: last resort — vision (covers scanned PDFs and sparse OCR) ──
     vision_result = _try_vision_extraction(file_path, user_id)
     if not vision_result.get("error"):
         vision_result["raw_text"] = raw_text or ""
-        vision_result["ocr_fallback_reason"] = "OCR text too sparse or empty"
         return vision_result
 
     if raw_text:
