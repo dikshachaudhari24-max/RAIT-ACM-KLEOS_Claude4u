@@ -88,6 +88,40 @@ def _extract_text_from_image(file_path: str) -> str:
     return text
 
 
+def _flatten_vision_result(result: dict) -> dict:
+    """Convert the master vision prompt's nested JSON into the flat format the pipeline expects."""
+    fields = result.get("fields", {})
+    if not fields:
+        return result
+
+    flat = {}
+    confidence_scores = {}
+    for key, obj in fields.items():
+        if isinstance(obj, dict) and "value" in obj:
+            flat[key] = obj["value"]
+            if "confidence" in obj:
+                confidence_scores[key] = obj["confidence"]
+        else:
+            flat[key] = obj
+
+    flat["confidence_scores"] = confidence_scores
+
+    meta = result.get("metadata", {})
+    if meta:
+        flat["page_condition"] = meta.get("page_condition")
+        flat["overall_quality_score"] = meta.get("overall_quality_score")
+
+    rec = result.get("recommendations", {})
+    if rec:
+        flat["needs_manual_verification"] = rec.get("needs_manual_verification", False)
+        flat["data_quality"] = rec.get("data_quality")
+
+    flat["validation_summary"] = result.get("validation_summary")
+    flat["quality_indicators"] = result.get("quality_indicators")
+
+    return flat
+
+
 def _try_vision_extraction(file_path: str, user_id: str) -> dict:
     """Send the image directly to Groq vision model for handwritten/low-quality docs."""
     ext = os.path.splitext(file_path)[1].lower()
@@ -103,7 +137,8 @@ def _try_vision_extraction(file_path: str, user_id: str) -> dict:
 
     try:
         from ai.groq_client import generate_vision_extraction
-        structured = generate_vision_extraction(img_path)
+        raw_result = generate_vision_extraction(img_path)
+        structured = _flatten_vision_result(raw_result)
         structured["extraction_method"] = "vision_llm"
         structured["user_id"] = user_id
         return structured
