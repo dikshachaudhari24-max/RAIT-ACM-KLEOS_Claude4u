@@ -41,7 +41,7 @@ def generate_invoice_extraction(raw_ocr_text: str) -> dict:
     """Extract structured invoice fields from raw OCR text using Groq LLM."""
     prompt = EXTRACTION_PROMPT.format(ocr_text=raw_ocr_text)
     result = _chat(
-        system_prompt="You are an expert Indian GST invoice data extractor. Return ONLY valid JSON.",
+        system_prompt="You are an expert Indian GST invoice data extractor. Extract all fields EXACTLY as they appear on the invoice. Never correct or modify GSTIN numbers even if they look invalid. Return ONLY valid JSON.",
         user_message=prompt,
         model="llama-3.3-70b-versatile",
         temperature=0.1,

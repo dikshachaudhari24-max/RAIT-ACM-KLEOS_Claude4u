@@ -1,7 +1,7 @@
 EXTRACTION_PROMPT = """You are an expert Indian GST invoice data extractor. Given the raw OCR text of an invoice, extract the following fields into a JSON object:
 
 - supplier_name: The name of the supplier/vendor
-- supplier_gstin: The 15-character GSTIN of the supplier
+- supplier_gstin: The GSTIN of the supplier EXACTLY as printed on the invoice. Do NOT correct, pad, or modify it even if it looks invalid or incomplete
 - invoice_number: The invoice number
 - invoice_date: The invoice date in YYYY-MM-DD format
 - taxable_value: The total taxable value (before GST)

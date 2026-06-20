@@ -10,7 +10,7 @@ For handwritten text:
 Extract these fields into a JSON object:
 
 - supplier_name: The name of the supplier/vendor
-- supplier_gstin: The 15-character GSTIN of the supplier (if visible)
+- supplier_gstin: The GSTIN of the supplier EXACTLY as printed on the invoice. Do NOT correct, pad, or modify it even if it looks invalid or incomplete
 - invoice_number: The invoice number or bill number
 - invoice_date: The invoice date in YYYY-MM-DD format
 - taxable_value: The total taxable value (before GST)
