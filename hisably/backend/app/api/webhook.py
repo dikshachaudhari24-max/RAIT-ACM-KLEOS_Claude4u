@@ -68,6 +68,93 @@ def _unwrap_list(val):
     return str(_unwrap(val))
 
 
+def _is_gstr2b_upload(file_path: str, message_body: str) -> bool:
+    """Detect if a WhatsApp PDF is a GSTR-2B file based on message text or PDF content."""
+    msg = message_body.lower()
+    if any(kw in msg for kw in ("gstr", "2b", "gstr2b", "gstr-2b", "reconcil")):
+        return True
+    if not file_path.endswith(".pdf"):
+        return False
+    try:
+        import pdfplumber
+        with pdfplumber.open(file_path) as pdf:
+            if pdf.pages:
+                text = (pdf.pages[0].extract_text() or "").lower()
+                if "gstr-2b" in text or "gstr2b" in text or "itc available" in text:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _handle_gstr2b_upload(user_id: str, file_path: str) -> str:
+    """Process a GSTR-2B PDF received via WhatsApp — saves to gstr2b_records table."""
+    try:
+        with open(file_path, "rb") as f:
+            content = f.read()
+
+        from app.api.gstr2b import _parse_pdf_to_records
+        records = _parse_pdf_to_records(content)
+
+        if not records:
+            return (
+                "⚠️ GSTR-2B PDF padh nahi paaye.\n"
+                "Ensure karein ki PDF mein supplier GSTIN, invoice number, aur ITC amount columns hain."
+            )
+
+        upload_id = str(uuid.uuid4())
+        queries.insert_gstr2b_batch(user_id, records, upload_id)
+
+        from app.engines.gstr2b_reconciler import reconcile
+        from app.engines.root_cause_classifier import classify_root_cause
+
+        invoices, _ = queries.get_invoices(user_id, page=1, per_page=1000)
+        gstr2b_records = queries.get_gstr2b_records(user_id)
+        mismatches = reconcile(invoices, gstr2b_records)
+
+        for m in mismatches:
+            rc = classify_root_cause(
+                mismatch_type=m.get("mismatch_type", ""),
+                ocr_confidence=0.85,
+                user_edited_field=False,
+                supplier_error_history=0,
+                total_supplier_invoices=1,
+            )
+            m["root_cause_category"] = rc["root_cause_category"]
+            m["root_cause_confidence"] = rc["confidence"]
+            m["recommended_action"] = rc["recommended_action"]
+            m["explanation_en"] = rc["reasoning"]
+            m["explanation_hi"] = ""
+
+        if mismatches:
+            queries.insert_mismatches_batch(user_id, mismatches)
+
+        lines = [
+            "✅ *GSTR-2B upload ho gaya!*",
+            "",
+            f"📊 Records found: {len(records)}",
+            f"⚠️ Mismatches: {len(mismatches)}",
+        ]
+        if mismatches:
+            total_risk = sum(float(m.get("itc_at_risk") or m.get("amount_difference") or 0) for m in mismatches)
+            lines.append(f"💰 ITC at risk: ₹{total_risk:,.2f}")
+            lines.append("")
+            for m in mismatches[:3]:
+                supplier = m.get("supplier_name") or "Unknown"
+                mtype = (m.get("mismatch_type") or "").replace("_", " ")
+                lines.append(f"• {supplier} — {mtype}")
+        else:
+            lines.append("✅ Sab match ho gaya! Koi mismatch nahi.")
+
+        lines.append("\n🔧 Details ke liye Hisably app kholein.")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"GSTR-2B process karne mein error: {e}"
+    finally:
+        if os.path.exists(file_path):
+            os.unlink(file_path)
+
+
 def _handle_invoice_upload(user_id: str, file_path: str) -> str:
     try:
         from ai.ocr.extractor import extract
@@ -284,15 +371,19 @@ async def whatsapp_webhook(request: Request):
             _send_whatsapp(from_number, "Media receive nahi hua. Dobara bhejein.")
             return JSONResponse(status_code=200, content={"status": "no_media"})
 
-        _send_whatsapp(from_number, "📄 Invoice receive hua! Processing kar raha hoon...")
-
         file_path = _download_media(media_url)
         if not file_path:
             _send_whatsapp(from_number, "File download nahi ho paya. Dobara bhejein.")
             return JSONResponse(status_code=200, content={"status": "download_failed"})
 
-        queries.insert_chat_message(user_id, "user", f"[Invoice image uploaded] {message_body}")
-        response_text = _handle_invoice_upload(user_id, file_path)
+        if _is_gstr2b_upload(file_path, message_body):
+            _send_whatsapp(from_number, "📊 GSTR-2B file receive hua! Processing kar raha hoon...")
+            queries.insert_chat_message(user_id, "user", f"[GSTR-2B PDF uploaded] {message_body}")
+            response_text = _handle_gstr2b_upload(user_id, file_path)
+        else:
+            _send_whatsapp(from_number, "📄 Invoice receive hua! Processing kar raha hoon...")
+            queries.insert_chat_message(user_id, "user", f"[Invoice image uploaded] {message_body}")
+            response_text = _handle_invoice_upload(user_id, file_path)
     else:
         if not message_body:
             return JSONResponse(status_code=200, content={"status": "empty"})
