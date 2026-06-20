@@ -100,6 +100,24 @@ export const api = {
     form.append('file', { uri: audioUri, name: 'voice.m4a', type: 'audio/m4a' });
     return request('/chatbot/voice', { method: 'POST', body: form });
   },
+
+  transcribeAudio: async (audioUri) => {
+    const form = new FormData();
+    form.append('file', { uri: audioUri, name: 'voice.m4a', type: 'audio/m4a' });
+    return request('/voice/transcribe', { method: 'POST', body: form });
+  },
+
+  voiceConversation: (query, history = [], language = 'English', sessionId = '') =>
+    request('/voice/query', {
+      method: 'POST',
+      body: JSON.stringify({ query, history, language, session_id: sessionId }),
+    }),
+
+  voiceInvoice: (transcript, language = 'English') =>
+    request('/voice/invoice', {
+      method: 'POST',
+      body: JSON.stringify({ transcript, language }),
+    }),
   getAnalytics: (month) => request(`/analytics/monthly${month ? `?month=${month}` : ''}`),
   getInvoiceDetail: (invoiceId) => request(`/invoice/detail?invoice_id=${invoiceId}`),
 
