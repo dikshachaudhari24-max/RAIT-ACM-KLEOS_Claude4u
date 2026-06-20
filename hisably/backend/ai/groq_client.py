@@ -11,6 +11,7 @@ from ai.prompts.hindi_explanation_prompt import HINDI_EXPLANATION_PROMPT
 from ai.prompts.supplier_recommendation_prompt import SUPPLIER_RECOMMENDATION_PROMPT
 from ai.prompts.rag_system_prompt import RAG_SYSTEM_PROMPT
 from ai.prompts.vision_extraction_prompt import VISION_EXTRACTION_PROMPT
+from ai.prompts.voice_assistant_prompt import ARTHA_SYSTEM_PROMPT, VOICE_INVOICE_PROMPT
 
 _client = None
 
@@ -118,6 +119,49 @@ def generate_supplier_recommendation(issue_data: dict) -> str:
         system_prompt="You are a professional business communication assistant.",
         user_message=prompt,
     )
+
+
+def generate_artha_response(
+    query: str,
+    user_name: str,
+    gstin: str,
+    language: str,
+    rag_context: str,
+    faq_context: str,
+    history: list,
+) -> str:
+    """Generate a short conversational voice reply as Artha, grounded in user data + GST FAQ."""
+    history_str = "\n".join(
+        f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+        for msg in (history or [])[-10:]
+    )
+    system = ARTHA_SYSTEM_PROMPT.format(
+        user_name=user_name or "there",
+        gstin=gstin or "not set",
+        language=language or "English",
+        rag_context=rag_context or "No recent activity.",
+        faq_context=faq_context or "No specific GST reference.",
+        history=history_str or "(start of conversation)",
+    )
+    return _chat(system_prompt=system, user_message=query, temperature=0.4)
+
+
+def generate_voice_invoice_extraction(transcript: str, today: str) -> dict:
+    """Extract structured invoice fields from a spoken transcript using Groq LLM."""
+    prompt = VOICE_INVOICE_PROMPT.format(transcript=transcript, today=today)
+    result = _chat(
+        system_prompt="You are an expert GST invoice data extractor. Return ONLY valid JSON.",
+        user_message=prompt,
+        model="llama-3.3-70b-versatile",
+        temperature=0.1,
+    )
+    try:
+        cleaned = result.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+        return json.loads(cleaned)
+    except (json.JSONDecodeError, IndexError):
+        return {"raw_response": result, "parse_error": True}
 
 
 def generate_rag_response(query: str, retrieved_chunks: list, chat_history: list, user_lang: str) -> str:
