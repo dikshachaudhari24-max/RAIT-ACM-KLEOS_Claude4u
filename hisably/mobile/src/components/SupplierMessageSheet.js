@@ -4,7 +4,6 @@ import {
   Animated, PanResponder, Dimensions, ScrollView, Share,
   Linking, Platform,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, radius } from '../theme';
@@ -51,11 +50,11 @@ export const SupplierMessageSheet = ({ visible, message, onClose }) => {
 
   const handleCopy = async () => {
     try {
-      await Clipboard.setStringAsync(message);
+      await Share.share({ message });
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard not available
+      // share cancelled
     }
   };
 
