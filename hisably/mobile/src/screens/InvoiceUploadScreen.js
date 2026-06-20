@@ -95,6 +95,20 @@ export const InvoiceUploadScreen = ({ navigation }) => {
       setProcessing(false);
 
       if (res.error) return Alert.alert(t('common.error'), res.error);
+      if (res.already_exists) {
+        Alert.alert(
+          'Duplicate Invoice',
+          `Invoice ${res.extracted?.invoice_number || ''} from ${res.extracted?.supplier_name || 'this supplier'} has already been uploaded.`,
+          [
+            { text: 'View Invoice', onPress: () => navigation.navigate('InvoiceDetail', {
+              data: { ...res.extracted, status: res.status, invoice_id: res.invoice_id },
+              mismatches: [],
+            })},
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
       if (res.extracted) {
         navigation.navigate('InvoiceDetail', {
           data: { ...res.extracted, status: res.status, invoice_id: res.invoice_id },
