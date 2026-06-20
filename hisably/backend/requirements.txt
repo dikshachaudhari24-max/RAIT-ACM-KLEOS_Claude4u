@@ -9,7 +9,7 @@ pandas
 openpyxl
 scikit-learn
 sentence-transformers
-pinecone-client
+pinecone
 openai
 groq
 google-cloud-vision
