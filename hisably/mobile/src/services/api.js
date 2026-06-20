@@ -29,6 +29,13 @@ export const setAuthToken = (token) => {
 
 export const getAuthToken = () => authToken;
 
+// Registered by the auth store so the API layer can force a logout when the
+// stored token is rejected (e.g. signed with an old/rotated JWT secret).
+let onAuthError = null;
+export const setAuthErrorHandler = (fn) => {
+  onAuthError = fn;
+};
+
 const request = async (path, options = {}) => {
   const headers = {
     'ngrok-skip-browser-warning': 'true',
@@ -43,6 +50,12 @@ const request = async (path, options = {}) => {
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Request failed' }));
+    // A stale/invalid token (401) means the cached session is no longer valid —
+    // clear it so the user is sent back to login instead of being stuck.
+    if (res.status === 401 && onAuthError) {
+      onAuthError();
+      throw new Error('Session expired. Please log in again.');
+    }
     throw new Error(err.detail || 'Request failed');
   }
   return res.json();

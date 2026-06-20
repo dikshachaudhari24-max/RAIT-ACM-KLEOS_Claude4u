@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, setAuthToken } from '../services/api';
+import { api, setAuthToken, setAuthErrorHandler } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AUTH_KEY = '@hisably_auth';
@@ -19,6 +19,9 @@ export const useAuthStore = create((set, get) => ({
   onboarded: false,
 
   initialize: async () => {
+    // Let the API layer force a logout if any request is rejected with 401
+    // (e.g. a token signed with a rotated/old JWT secret).
+    setAuthErrorHandler(() => get().logout());
     try {
       const [stored, onboarded] = await Promise.all([
         AsyncStorage.getItem(AUTH_KEY),
@@ -28,6 +31,10 @@ export const useAuthStore = create((set, get) => ({
         const { user, session } = JSON.parse(stored);
         setAuthToken(session.access_token);
         set({ user, session, loading: false, onboarded: !!onboarded });
+
+        // Validate the cached token in the background. If it is stale, the
+        // health-protected probe returns 401 and the auth-error handler logs out.
+        api.getInvoiceSummary?.().catch(() => {});
         return;
       }
       set({ loading: false, onboarded: !!onboarded });
