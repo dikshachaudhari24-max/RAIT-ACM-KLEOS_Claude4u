@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     OCR_MIN_TEXT_LENGTH: int = 20
     APP_ENV: str = "development"
 
+    # Gemini (Google AI Studio) — used for handwritten invoice vision and as a
+    # fallback when Groq hits its daily rate limit. Get a free key at
+    # https://aistudio.google.com/apikey
+    GEMINI_API_KEY: str = ""
+    GEMINI_VISION_MODEL: str = "gemini-2.0-flash"
+    GEMINI_TEXT_MODEL: str = "gemini-2.0-flash"
+    USE_GEMINI_VISION: bool = True
+
     @model_validator(mode="after")
     def resolve_key_aliases(self):
         if not self.SUPABASE_KEY and self.SUPABASE_ANON_KEY:

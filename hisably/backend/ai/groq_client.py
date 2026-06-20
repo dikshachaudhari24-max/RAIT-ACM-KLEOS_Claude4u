@@ -24,17 +24,29 @@ def _get_client() -> Groq:
 
 
 def _chat(system_prompt: str, user_message: str, model: str = "llama-3.3-70b-versatile", temperature: float = 0.3) -> str:
-    client = _get_client()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        temperature=temperature,
-        max_tokens=2048,
-    )
-    return response.choices[0].message.content
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=temperature,
+            max_tokens=2048,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        # Groq failed (commonly a daily rate-limit 429). Fall back to Gemini so
+        # voice replies / explanations keep working instead of erroring out.
+        try:
+            from ai.gemini_client import is_available, gemini_chat
+            if is_available():
+                print(f"[groq] falling back to Gemini: {e}")
+                return gemini_chat(system_prompt, user_message, temperature)
+        except Exception as ge:
+            print(f"[gemini fallback failed] {ge}")
+        raise
 
 
 def generate_invoice_extraction(raw_ocr_text: str) -> dict:
@@ -56,11 +68,22 @@ def generate_invoice_extraction(raw_ocr_text: str) -> dict:
 
 
 def generate_vision_extraction(image_path: str) -> dict:
-    """Extract structured invoice fields from an image using Groq vision model.
+    """Extract structured invoice fields from an image using a vision LLM.
 
-    Sends the preprocessed image directly to a vision-capable LLM so it can
-    reason over handwritten/blurry content that defeats plain OCR.
+    Prefers Gemini Flash (far better at handwriting + self-correction). Falls
+    back to the Groq vision model if no Gemini key is configured.
     """
+    if settings.USE_GEMINI_VISION:
+        try:
+            from ai.gemini_client import is_available, generate_vision_extraction_gemini
+            if is_available():
+                result = generate_vision_extraction_gemini(image_path)
+                if not result.get("error") and not result.get("parse_error"):
+                    return result
+                print(f"[vision] Gemini returned error, falling back to Groq: {result.get('error') or 'parse_error'}")
+        except Exception as e:
+            print(f"[vision] Gemini failed, falling back to Groq: {e}")
+
     with open(image_path, "rb") as f:
         img_bytes = f.read()
     b64 = base64.b64encode(img_bytes).decode("utf-8")

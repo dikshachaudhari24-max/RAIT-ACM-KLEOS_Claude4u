@@ -27,3 +27,4 @@ pytesseract
 pdfplumber
 pdf2image
 PyJWT
+google-generativeai
