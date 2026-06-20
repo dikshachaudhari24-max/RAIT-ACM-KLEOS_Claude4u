@@ -138,6 +138,21 @@ export const DashboardScreen = ({ navigation }) => {
 
           <Text style={[typography.section, styles.sectionTitle]}>{t('dash.recentAlerts')}</Text>
           <AlertRow type="success" title={t('dash.connected')} subtitle={t('common.now')} />
+
+          <TouchableOpacity
+            style={styles.caDashBtn}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('CADashboard')}
+          >
+            <View style={styles.caDashIcon}>
+              <Ionicons name="briefcase" size={24} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[typography.labelBold, { color: colors.textPrimary, fontSize: 15 }]}>CA Dashboard</Text>
+              <Text style={[typography.monoCaption, { color: colors.textSecondary }]}>Audit-ready reports & analytics</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.outline} />
+          </TouchableOpacity>
         </>
       )}
     </Screen>
@@ -166,4 +181,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.card, marginBottom: 12, ...shadow.card,
   },
   taskDot: { width: 10, height: 10, borderRadius: 5, marginRight: spacing.iconTextGap },
+  caDashBtn: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+    paddingVertical: 16, paddingHorizontal: 16,
+    borderRadius: radius.card, marginTop: 16, ...shadow.card,
+  },
+  caDashIcon: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primaryLight,
+    alignItems: 'center', justifyContent: 'center', marginRight: 14,
+  },
 });
