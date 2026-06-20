@@ -163,6 +163,7 @@ export const translations = {
   'upload.scan': { en: 'Scan Document', hi: 'Document Scan करें' },
   'upload.gallery': { en: 'Choose from Gallery', hi: 'Gallery से चुनें' },
   'upload.pdf': { en: 'Upload PDF', hi: 'PDF Upload करें' },
+  'upload.speak': { en: 'Speak Invoice', hi: 'बोलकर Invoice भरें' },
   'upload.manual': { en: 'Manual Entry', hi: 'खुद भरें' },
   'upload.recent': { en: 'Recent Uploads', hi: 'हाल के Uploads' },
   'upload.processing': { en: 'Reading your invoice...', hi: 'Invoice पढ़ रहे हैं...' },

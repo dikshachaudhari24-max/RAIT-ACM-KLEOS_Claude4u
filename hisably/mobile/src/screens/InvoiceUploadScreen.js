@@ -5,6 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radius, shadow } from '../theme';
 import { Screen, StatusChip } from '../components';
+import { VoiceInvoiceOverlay } from '../components/VoiceInvoiceOverlay';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
@@ -20,6 +21,7 @@ const statusTone = (s) => {
 export const InvoiceUploadScreen = ({ navigation }) => {
   const [processing, setProcessing] = useState(false);
   const [recent, setRecent] = useState([]);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const { user } = useAuthStore();
   const t = useT();
   const initials = ((user?.name?.[0] || user?.email?.[0] || 'U') + (user?.name?.[1] || '')).toUpperCase();
@@ -28,7 +30,35 @@ export const InvoiceUploadScreen = ({ navigation }) => {
     { icon: 'camera', labelKey: 'upload.scan', type: 'camera', bg: colors.accent, fg: colors.primaryDeep },
     { icon: 'image', labelKey: 'upload.gallery', type: 'gallery', bg: colors.accentSoft, fg: colors.primaryDeep },
     { icon: 'document-text', labelKey: 'upload.pdf', type: 'pdf', bg: colors.dangerLight, fg: colors.danger },
+    { icon: 'mic', labelKey: 'upload.speak', type: 'voice', bg: colors.primaryLight, fg: colors.primary },
   ];
+
+  const onTilePress = (type) => {
+    if (type === 'voice') return setVoiceOpen(true);
+    handleUpload(type);
+  };
+
+  const handleVoiceConfirm = (data) => {
+    setVoiceOpen(false);
+    navigation.navigate('InvoiceDetail', {
+      data: {
+        supplier_name: data.supplier_name,
+        supplier_gstin: data.supplier_gstin,
+        invoice_number: data.invoice_number,
+        date: data.invoice_date,
+        hsn_code: data.hsn_code,
+        product_description: data.description,
+        taxable_value: data.taxable_value,
+        cgst_amount: data.cgst,
+        sgst_amount: data.sgst,
+        gst_amount: data.gst_amount,
+        total_amount: data.total_amount,
+        status: 'voice_entry',
+        source: 'voice',
+      },
+      mismatches: [],
+    });
+  };
 
   useEffect(() => { loadRecent(); }, []);
 
@@ -83,7 +113,7 @@ export const InvoiceUploadScreen = ({ navigation }) => {
   return (
     <Screen title={t('upload.title')} heroHeight={150} avatar={initials} onAvatarPress={() => navigation.navigate('Profile')}>
       {tiles.map((tile, i) => (
-        <TouchableOpacity key={i} style={styles.tile} onPress={() => handleUpload(tile.type)} activeOpacity={0.85}>
+        <TouchableOpacity key={i} style={styles.tile} onPress={() => onTilePress(tile.type)} activeOpacity={0.85}>
           <View style={[styles.tileIcon, { backgroundColor: tile.bg }]}>
             <Ionicons name={tile.icon} size={28} color={tile.fg} />
           </View>
@@ -156,6 +186,13 @@ export const InvoiceUploadScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <VoiceInvoiceOverlay
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onConfirm={handleVoiceConfirm}
+        api={api}
+      />
     </Screen>
   );
 };
