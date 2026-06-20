@@ -32,5 +32,6 @@ async def verify_jwt(authorization: str = Header(...)) -> dict:
         return {"uid": user_id, "email": payload.get("email", ""), "role": payload.get("role", "")}
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
+        print(f"[auth] JWT validation failed: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
