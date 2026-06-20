@@ -150,6 +150,13 @@ export const api = {
     const qs = Object.entries(params).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     return `${API_BASE}/invoice/export/${format}${qs ? `?${qs}` : ''}`;
   },
+
+  getCaDashboard: (userId) =>
+    request(`/ca/dashboard${userId ? `?user_id=${userId}` : ''}`),
+  getCaAiInsights: (userId) =>
+    request(`/ca/dashboard/ai-insights${userId ? `?user_id=${userId}` : ''}`),
+  getCaExportSummary: (userId) =>
+    request(`/ca/export/summary${userId ? `?user_id=${userId}` : ''}`),
 };
 
 export { API_BASE };
