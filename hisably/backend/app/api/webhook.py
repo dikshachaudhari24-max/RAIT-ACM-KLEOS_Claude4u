@@ -51,6 +51,23 @@ def _download_media(media_url: str) -> str | None:
         return None
 
 
+def _unwrap(val):
+    """Extract plain value from LLM confidence-wrapped fields."""
+    if isinstance(val, dict) and "value" in val:
+        return val["value"]
+    return val
+
+
+def _unwrap_list(val):
+    """Unwrap a list of possibly wrapped values into a joined string."""
+    if not val:
+        return None
+    if isinstance(val, list):
+        items = [str(_unwrap(item)) for item in val if _unwrap(item)]
+        return ", ".join(items) if items else None
+    return str(_unwrap(val))
+
+
 def _handle_invoice_upload(user_id: str, file_path: str) -> str:
     try:
         from ai.ocr.extractor import extract
@@ -59,18 +76,33 @@ def _handle_invoice_upload(user_id: str, file_path: str) -> str:
         if result.get("error"):
             return f"Invoice padh nahi paaye: {result['error']}\nDusri photo bhejein ya clear photo lein."
 
+        supplier_name = _unwrap(result.get("supplier_name")) or ""
+        supplier_gstin = _unwrap(result.get("supplier_gstin")) or _unwrap(result.get("gstin")) or ""
+        invoice_number = _unwrap(result.get("invoice_number")) or ""
+        invoice_date = _unwrap(result.get("date")) or _unwrap(result.get("invoice_date"))
+        total_amount = _unwrap(result.get("total_amount")) or _unwrap(result.get("grand_total"))
+        taxable_value = _unwrap(result.get("taxable_value"))
+        gst_amount = _unwrap(result.get("gst_amount")) or _unwrap(result.get("total_gst")) or _unwrap(result.get("total_gst_amount"))
+        hsn_code = _unwrap_list(result.get("hsn_codes") or result.get("hsn_code") or result.get("hsn"))
+        description = _unwrap_list(result.get("product_descriptions") or result.get("product_description") or result.get("description"))
+
         invoice_data = {
             "status": "pending",
-            "supplier_name": result.get("supplier_name"),
-            "supplier_gstin": result.get("supplier_gstin"),
-            "invoice_number": result.get("invoice_number"),
-            "date": result.get("invoice_date"),
-            "total_amount": result.get("total_amount"),
-            "taxable_value": result.get("taxable_value"),
-            "gst_amount": result.get("total_gst_amount"),
-            "hsn_code": ",".join(result.get("hsn_codes", [])) if isinstance(result.get("hsn_codes"), list) else result.get("hsn_codes"),
-            "product_description": ", ".join(result.get("product_descriptions", [])) if isinstance(result.get("product_descriptions"), list) else result.get("product_descriptions"),
+            "supplier_name": supplier_name,
+            "supplier_gstin": supplier_gstin,
+            "invoice_number": invoice_number,
+            "date": invoice_date,
+            "total_amount": total_amount,
+            "taxable_value": taxable_value,
+            "gst_amount": gst_amount,
+            "cgst_amount": _unwrap(result.get("cgst_amount") or result.get("cgst")),
+            "sgst_amount": _unwrap(result.get("sgst_amount") or result.get("sgst")),
+            "igst_amount": _unwrap(result.get("igst_amount") or result.get("igst")),
+            "hsn_code": hsn_code,
+            "product_description": description,
             "file_url": f"whatsapp_uploads/{uuid.uuid4()}",
+            "upload_source": "whatsapp",
+            "ocr_raw_text": result.get("raw_text", ""),
         }
         inv = queries.insert_invoice(user_id, invoice_data)
 
@@ -86,10 +118,11 @@ def _handle_invoice_upload(user_id: str, file_path: str) -> str:
         lines = [
             "✅ Invoice upload ho gaya!",
             "",
-            f"📄 Invoice No: {invoice_data.get('invoice_number') or 'N/A'}",
-            f"🏪 Supplier: {invoice_data.get('supplier_name') or 'N/A'}",
-            f"💰 Amount: ₹{invoice_data.get('total_amount') or 'N/A'}",
+            f"📄 Invoice No: {invoice_number or 'N/A'}",
+            f"🏪 Supplier: {supplier_name or 'N/A'}",
+            f"💰 Amount: ₹{total_amount or 'N/A'}",
             f"📊 Status: {status}",
+            f"🔗 Method: {result.get('extraction_method', 'ocr_llm')}",
         ]
 
         if status == "error_gstin":

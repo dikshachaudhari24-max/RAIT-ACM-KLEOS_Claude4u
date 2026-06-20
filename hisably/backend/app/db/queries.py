@@ -414,6 +414,12 @@ def get_user_by_phone(phone: str) -> dict | None:
     return result.data[0] if result.data else None
 
 
+def get_user_by_phone_by_id(user_id: str) -> dict | None:
+    client = get_admin_client()
+    result = client.table("users").select("*").eq("id", user_id).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
 def create_user(phone: str) -> dict:
     client = get_admin_client()
     result = client.table("users").insert({"phone": phone, "is_verified": True}).execute()

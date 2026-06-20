@@ -141,7 +141,53 @@ async def upload_gstr2b(file: UploadFile = File(...), user=Depends(verify_jwt)):
         for m in (inserted or mismatches):
             _embed_mismatch(m, user["uid"])
 
+        _send_whatsapp_mismatch_alert(user["uid"], mismatches)
+
     return GSTR2BUploadResponse(upload_id=upload_id, status="processed")
+
+
+def _send_whatsapp_mismatch_alert(user_id: str, mismatches: list):
+    """Send WhatsApp alert to the user when GSTR-2B mismatches are found."""
+    try:
+        user = queries.get_user_by_phone_by_id(user_id)
+        if not user or not user.get("phone"):
+            return
+
+        total_risk = sum(float(m.get("itc_at_risk") or m.get("amount_difference") or 0) for m in mismatches)
+        amt_count = sum(1 for m in mismatches if m.get("mismatch_type") == "amount_mismatch")
+        gstin_count = sum(1 for m in mismatches if m.get("mismatch_type") == "gstin_mismatch")
+        missing_count = sum(1 for m in mismatches if m.get("mismatch_type") == "missing_invoice")
+
+        lines = [
+            "🚨 *GSTR-2B Reconciliation Alert*",
+            "",
+            f"⚠️ *{len(mismatches)} mismatches found!*",
+            f"💰 ITC at risk: ₹{total_risk:,.2f}",
+            "",
+        ]
+        if amt_count:
+            lines.append(f"• Amount mismatch: {amt_count}")
+        if gstin_count:
+            lines.append(f"• GSTIN mismatch: {gstin_count}")
+        if missing_count:
+            lines.append(f"• Missing in GSTR-2B: {missing_count}")
+
+        lines.append("")
+        for m in mismatches[:5]:
+            supplier = m.get("supplier_name") or "Unknown"
+            mtype = (m.get("mismatch_type") or "").replace("_", " ")
+            diff = float(m.get("amount_difference") or 0)
+            lines.append(f"📄 {supplier} — {mtype} (₹{diff:,.2f})")
+
+        if len(mismatches) > 5:
+            lines.append(f"\n...aur {len(mismatches) - 5} mismatches. App pe dekhein.")
+
+        lines.append("\n🔧 App kholein aur GSTR-2B tab pe jaayein fix karne ke liye.")
+
+        from app.api.webhook import _send_whatsapp
+        _send_whatsapp(user["phone"], "\n".join(lines))
+    except Exception as e:
+        print(f"WhatsApp alert error: {e}")
 
 
 @router.get("/mismatches", response_model=MismatchListResponse)
