@@ -62,9 +62,9 @@ export const InvoiceDetailScreen = ({ navigation, route }) => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.saveBtn} onPress={() => navigation.goBack()}>
-        <Ionicons name="checkmark" size={20} color="#fff" />
-        <Text style={[typography.labelBold, { color: '#fff', marginLeft: 8 }]}>{t('verify.saveAndContinue')}</Text>
+      <TouchableOpacity style={styles.saveBtn} onPress={() => navigation.navigate('InvoiceValidation', { invoice: data, mismatches: [] })}>
+        <Ionicons name="shield-checkmark" size={20} color="#fff" />
+        <Text style={[typography.labelBold, { color: '#fff', marginLeft: 8 }]}>Validate Invoice</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.uploadAnother} onPress={() => navigation.goBack()}>

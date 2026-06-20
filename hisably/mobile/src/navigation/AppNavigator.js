@@ -15,6 +15,7 @@ import {
   InvoiceUploadScreen,
   InvoiceDetailScreen,
   InvoiceListScreen,
+  InvoiceValidationScreen,
   GSTR2BScreen,
   ITCDashboardScreen,
   TasksScreen,
@@ -53,6 +54,7 @@ const MainStack = () => (
     <RootStack.Screen name="Tabs" component={MainTabs} />
     <RootStack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
     <RootStack.Screen name="InvoiceList" component={InvoiceListScreen} />
+    <RootStack.Screen name="InvoiceValidation" component={InvoiceValidationScreen} />
     <RootStack.Screen name="Profile" component={ProfileScreen} />
   </RootStack.Navigator>
 );

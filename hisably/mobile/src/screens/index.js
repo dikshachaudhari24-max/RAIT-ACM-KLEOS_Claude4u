@@ -10,3 +10,4 @@ export { TasksScreen } from './TasksScreen';
 export { VoiceScreen } from './VoiceScreen';
 export { SupplierScreen } from './SupplierScreen';
 export { ProfileScreen } from './ProfileScreen';
+export { InvoiceValidationScreen } from './InvoiceValidationScreen';
