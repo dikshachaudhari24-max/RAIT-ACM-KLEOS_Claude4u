@@ -1,14 +1,34 @@
 """Voice assistant endpoints: conversational query (Artha) and voice invoice entry."""
 
+import os
+import tempfile
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel
 
 from app.db import queries
 from app.deps import verify_jwt
 
 router = APIRouter(prefix="/voice", tags=["voice"])
+
+
+@router.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...), user=Depends(verify_jwt)):
+    """Transcribe an uploaded audio clip to text (no RAG) for conversation/invoice flows."""
+    suffix = os.path.splitext(file.filename or ".m4a")[1] or ".m4a"
+    fd, temp_path = tempfile.mkstemp(suffix=suffix)
+    try:
+        os.write(fd, await file.read())
+        os.close(fd)
+        from ai.voice.stt import transcribe
+        result = transcribe(temp_path)
+        return {"text": result.get("text", ""), "language": result.get("language", "unknown")}
+    except Exception as e:
+        return {"text": "", "language": "unknown", "error": str(e)}
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 
 class VoiceQueryRequest(BaseModel):
