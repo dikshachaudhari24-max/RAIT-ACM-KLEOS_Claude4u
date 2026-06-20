@@ -11,7 +11,7 @@ const LAN_IP = '192.168.5.80';
 
 // Public ngrok tunnel — reachable from a physical phone with no firewall changes.
 // Set to null to fall back to LAN_IP / emulator defaults below.
-const NGROK_URL = null;
+const NGROK_URL = 'https://washbasin-relenting-monologue.ngrok-free.dev';
 
 const API_BASE = NGROK_URL
   ? NGROK_URL
