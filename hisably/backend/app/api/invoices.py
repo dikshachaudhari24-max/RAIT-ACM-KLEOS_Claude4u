@@ -111,24 +111,27 @@ def _validate_and_score(invoice_id: str, invoice_data: dict, user_id: str) -> li
 
     try:
         from ai.rag.embedder import embed_text
-        from ai.rag.pinecone_client import get_namespace, upsert_vector
-        text = (
-            f"Invoice {invoice_data.get('invoice_number')} from {invoice_data.get('supplier_name')} "
-            f"dated {invoice_data.get('date')} for ₹{invoice_data.get('total_amount')} "
-            f"HSN: {invoice_data.get('hsn_code')} - {invoice_data.get('product_description')}"
-        )
-        vector = embed_text(text)
+        from ai.rag.pinecone_client import get_namespace, upsert_vector, vector_exists
+
         namespace = get_namespace(user_id, "invoice")
-        upsert_vector(namespace, invoice_id, vector, {
-            "text": text,
-            "record_type": "invoice",
-            "invoice_number": str(invoice_data.get("invoice_number") or ""),
-            "supplier_name": str(invoice_data.get("supplier_name") or ""),
-        })
-        print(f"[embedding] stored invoice {invoice_id} in Pinecone namespace {namespace}")
+
+        if vector_exists(namespace, invoice_id):
+            print(f"[embedding] invoice {invoice_id} already in Pinecone — skipping")
+        else:
+            text = (
+                f"Invoice {invoice_data.get('invoice_number')} from {invoice_data.get('supplier_name')} "
+                f"dated {invoice_data.get('date')} for ₹{invoice_data.get('total_amount')} "
+                f"HSN: {invoice_data.get('hsn_code')} - {invoice_data.get('product_description')}"
+            )
+            vector = embed_text(text)
+            upsert_vector(namespace, invoice_id, vector, {
+                "text": text,
+                "record_type": "invoice",
+                "invoice_number": str(invoice_data.get("invoice_number") or ""),
+                "supplier_name": str(invoice_data.get("supplier_name") or ""),
+            })
+            print(f"[embedding] stored invoice {invoice_id} in Pinecone namespace {namespace}")
     except Exception as e:
-        # Surface the reason instead of silently swallowing it — most often a
-        # missing/invalid PINECONE_API_KEY or PINECONE_INDEX_NAME in .env.
         print(f"[embedding] FAILED to store invoice {invoice_id} in vector DB: {e}")
 
     return mismatches
